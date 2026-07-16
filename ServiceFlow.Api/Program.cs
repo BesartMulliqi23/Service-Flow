@@ -13,6 +13,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>();
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -47,5 +50,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
