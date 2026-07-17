@@ -38,7 +38,7 @@ Authentication endpoints and organization onboarding are next.
 - Node.js and npm
 - Docker Desktop
 
-### 1. Configure and start SQL Server
+### 1. Configure and start local services
 
 Create your local environment file from the included example:
 
@@ -64,6 +64,11 @@ Password: The value of MSSQL_SA_PASSWORD in your .env file
 ```
 
 You can also connect to this instance through SSMS using those details.
+
+Mailpit captures local development emails. Open its inbox at:
+
+```text
+http://localhost:8025
 
 ### 2. Configure the API connection string
 
