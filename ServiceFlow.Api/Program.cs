@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Email;
+using ServiceFlow.Api.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>();
+
+builder.Services.AddControllers();
+
+builder.Services.Configure<SmtpOptions>(
+    builder.Configuration.GetSection(SmtpOptions.SectionName)
+);
+
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 builder.Services.AddAuthorization();
 
@@ -44,6 +54,20 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    app.MapPost("/development/test-email", async (IEmailSender emailSender, CancellationToken cancellationToken) =>
+    {
+        await emailSender.SendAsync(
+            "developer@serviceflow.local",
+            "ServiceFlow email delivery test",
+            "<p>If you can read this, local email delivery is working.</p>",
+            cancellationToken
+        );
+
+        return Results.NoContent();
+    })
+    .AllowAnonymous()
+    .WithTags("Development");
 }
 
 app.UseHttpsRedirection();
@@ -52,5 +76,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health").AllowAnonymous();
+
+app.MapControllers();
 
 app.Run();
