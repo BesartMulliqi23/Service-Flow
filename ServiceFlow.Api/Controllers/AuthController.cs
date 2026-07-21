@@ -15,6 +15,7 @@ namespace ServiceFlow.Api.Controllers;
 [Route("api/[controller]")]
 public sealed class AuthController(
     UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
     ILogger<AuthController> logger
 ) : ControllerBase
@@ -103,6 +104,95 @@ public sealed class AuthController(
         }
 
         return Accepted();
+    }
+
+    [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status423Locked)]
+    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            !new EmailAddressAttribute().IsValid(request.Email))
+        {
+            errors["email"] = ["A valid email address is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            errors["password"] = ["A password is required."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return CreateValidationProblem(errors);
+        }
+
+        var result = await signInManager.PasswordSignInAsync(
+            request.Email!.Trim(),
+            request.Password!,
+            request.RememberMe,
+            lockoutOnFailure: true
+        );
+
+        if (result.Succeeded)
+        {
+            return NoContent();
+        }
+
+        if (result.IsLockedOut)
+        {
+            return Problem(
+                title: "Account locked.",
+                detail: "Too many unsuccessful sign-in attempts. Please try again later.",
+                statusCode: StatusCodes.Status423Locked
+            );
+        }
+
+        // Deliberately use the same response for an unknown email, an incorrect
+        // password, and an unconfirmed account to avoid exposing account details.
+        return Unauthorized(new
+        {
+            message = "Invalid email or password."
+        });
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout()
+    {
+        await signInManager.SignOutAsync();
+
+        return NoContent();
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CurrentUserResponse>> GetCurrentUser()
+    {
+        var user = await userManager.GetUserAsync(User);
+
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+
+        return Ok(new CurrentUserResponse(
+            user.Id,
+            user.Email!,
+            user.EmailConfirmed,
+            roles.ToList()
+        ));
     }
 
     [HttpGet("confirm-email")]
