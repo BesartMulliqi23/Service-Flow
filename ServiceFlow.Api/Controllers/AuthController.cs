@@ -5,9 +5,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
+using Org.BouncyCastle.Ocsp;
 using ServiceFlow.Api.Contracts.Authentication;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Email;
+using ServiceFlow.Api.Settings;
 
 namespace ServiceFlow.Api.Controllers;
 
@@ -17,9 +20,12 @@ public sealed class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
+    IOptions<FrontendOptions> frontendOptions,
     ILogger<AuthController> logger
 ) : ControllerBase
 {
+    private readonly FrontendOptions _frontendOptions = frontendOptions.Value;
+
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
@@ -161,6 +167,122 @@ public sealed class AuthController(
         });
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            !new EmailAddressAttribute().IsValid(request.Email))
+        {
+            return CreateValidationProblem(new Dictionary<string, string[]>
+            {
+                ["email"] = ["A valid email address is required."]
+            });
+        }
+
+        var user = await userManager.FindByEmailAsync(request.Email.Trim());
+
+        if (user is not null && user.EmailConfirmed)
+        {
+            try
+            {
+                await SendPasswordResetEmailAsync(user, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(
+                    e,
+                    "Failed to send password reset email for user {UserId}.",
+                    user.Id
+                );
+            }
+        }
+
+        // Always return the same result for valid email addresses.
+        // This prevents callers from discovering whether an account exists.
+        return NoContent();
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.UserId))
+        {
+            errors["UserId"] = ["A user ID is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            errors["token"] = ["A reset token is required."];
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            errors["newPassword"] = ["A new password is required."];
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            errors["confirmPassword"] = ["Passwords do not match."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return CreateValidationProblem(errors);
+        }
+
+        var user = await userManager.FindByIdAsync(request.UserId!);
+
+        if (user is null)
+        {
+            return BadRequest(new
+            {
+                message = "The password reset request is invalid or has expired."
+            });
+        }
+
+        string decodedToken;
+
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token!));
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new
+            {
+                message = "The password reset request is invalid or has expired."
+            });
+        }
+
+        var result = await userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword!);
+
+        if (!result.Succeeded)
+        {
+            var identityErrors = result.Errors
+                .GroupBy(e => e.Code)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(error => error.Description).ToArray()
+                );
+
+            return CreateValidationProblem(identityErrors);
+        }
+
+        await userManager.ResetAccessFailedCountAsync(user);
+        await userManager.SetLockoutEndDateAsync(user, null);
+        await signInManager.SignOutAsync();
+
+        return NoContent();
+    }
+
     [HttpPost("logout")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -191,7 +313,7 @@ public sealed class AuthController(
             user.Id,
             user.Email!,
             user.EmailConfirmed,
-            roles.ToList()
+            roles.ToArray()
         ));
     }
 
@@ -240,6 +362,42 @@ public sealed class AuthController(
         {
             message = "Email confirmed successfully. You can now sign in."
         });
+    }
+
+    private async Task SendPasswordResetEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+        var resetUrl = QueryHelpers.AddQueryString(
+            $"{_frontendOptions.BaseUrl.TrimEnd('/')}/reset-password",
+            new Dictionary<string, string?>
+            {
+                ["userId"] = user.Id,
+                ["token"] = encodedToken
+            }
+        );
+
+        var encodedResetUrl = HtmlEncoder.Default.Encode(resetUrl);
+
+        var htmlBody = $"""
+            <h1>Reset your ServiceFlow password</h1>
+            <p>We received a request to reset your password.</p>
+            <p>
+                <a href="{encodedResetUrl}">
+                    Reset your password
+                </a>
+            </p>
+            <p>If you did not request a password reset, you can ignore this email.</p>
+        """;
+
+        await emailSender.SendAsync(
+            user.Email!,
+            "Reset your ServiceFlow password",
+            htmlBody,
+            cancellationToken
+        );
     }
 
     private async Task SendConfirmationEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
