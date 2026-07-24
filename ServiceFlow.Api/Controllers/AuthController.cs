@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using Org.BouncyCastle.Ocsp;
 using ServiceFlow.Api.Contracts.Authentication;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Email;
@@ -202,7 +201,7 @@ public sealed class AuthController(
 
         // Always return the same result for valid email addresses.
         // This prevents callers from discovering whether an account exists.
-        return NoContent();
+        return Accepted();
     }
 
     [HttpPost("reset-password")]
