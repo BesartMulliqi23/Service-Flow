@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Settings;
 
@@ -33,6 +34,7 @@ builder.Services.Configure<GoogleAuthenticationOptions>(
 );
 
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 
 builder.Services.AddAuthorization();
 

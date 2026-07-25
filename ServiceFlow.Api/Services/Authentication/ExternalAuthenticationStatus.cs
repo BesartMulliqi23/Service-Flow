@@ -4,6 +4,5 @@ public enum ExternalAuthenticationStatus
 {
     Success,
     AuthenticationFailed,
-    MissingEmail,
-    UnsupportedProvider
+    MissingEmail
 }
