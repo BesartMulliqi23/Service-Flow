@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Settings;
 
@@ -29,7 +29,12 @@ builder.Services.Configure<FrontendOptions>(
     builder.Configuration.GetSection(FrontendOptions.SectionName)
 );
 
+builder.Services.Configure<GoogleAuthenticationOptions>(
+    builder.Configuration.GetSection(GoogleAuthenticationOptions.SectionName)
+);
+
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 
 builder.Services.AddAuthorization();
 
@@ -49,6 +54,15 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.AddAuthentication()
+    .AddGoogle(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+
+        options.CallbackPath = "/signin-google";
+    });
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

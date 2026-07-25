@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
-using Org.BouncyCastle.Ocsp;
 using ServiceFlow.Api.Contracts.Authentication;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Settings;
 
@@ -21,7 +21,8 @@ public sealed class AuthController(
     SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
     IOptions<FrontendOptions> frontendOptions,
-    ILogger<AuthController> logger
+    ILogger<AuthController> logger,
+    IExternalAuthService externalAuthService
 ) : ControllerBase
 {
     private readonly FrontendOptions _frontendOptions = frontendOptions.Value;
@@ -202,7 +203,7 @@ public sealed class AuthController(
 
         // Always return the same result for valid email addresses.
         // This prevents callers from discovering whether an account exists.
-        return NoContent();
+        return Accepted();
     }
 
     [HttpPost("reset-password")]
@@ -362,6 +363,41 @@ public sealed class AuthController(
         {
             message = "Email confirmed successfully. You can now sign in."
         });
+    }
+
+    [HttpGet("external/{provider}")]
+    [AllowAnonymous]
+    public IActionResult ExternalLogin(string provider)
+    {
+        try
+        {
+            var redirectUri = Url.Action(nameof(ExternalLoginCallback), "Auth");
+
+            if (redirectUri is null)
+            {
+                return Problem("Could not generate callback URL.");
+            }
+
+            var properties = externalAuthService.Challenge(provider, redirectUri);
+
+            return Challenge(properties, provider);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(new
+            {
+                message = e.Message
+            });
+        }
+    }
+
+    [HttpGet("external/callback")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExternalLoginCallback()
+    {
+        var result = await externalAuthService.HandleCallbackAsync();
+
+        return Redirect(result.RedirectUri);
     }
 
     private async Task SendPasswordResetEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
