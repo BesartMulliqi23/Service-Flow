@@ -33,6 +33,10 @@ builder.Services.Configure<GoogleAuthenticationOptions>(
     builder.Configuration.GetSection(GoogleAuthenticationOptions.SectionName)
 );
 
+builder.Services.Configure<MicrosoftAuthenticationOptions>(
+    builder.Configuration.GetSection(MicrosoftAuthenticationOptions.SectionName)
+);
+
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 
@@ -62,6 +66,15 @@ builder.Services.AddAuthentication()
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
 
         options.CallbackPath = "/signin-google";
+    });
+
+builder.Services.AddAuthentication()
+    .AddMicrosoftAccount(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"]!;
+
+        options.CallbackPath = "/signin-microsoft";
     });
 
 builder.Services.ConfigureApplicationCookie(options =>

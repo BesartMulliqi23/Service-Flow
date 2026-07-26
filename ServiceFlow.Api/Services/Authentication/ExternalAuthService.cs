@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Models;
@@ -15,7 +16,8 @@ public sealed class ExternalAuthService(
 ) : IExternalAuthService
 {
     private static readonly HashSet<string> SupportedProviders = [
-        GoogleDefaults.AuthenticationScheme
+        GoogleDefaults.AuthenticationScheme,
+        MicrosoftAccountDefaults.AuthenticationScheme
     ];
 
     private readonly FrontendOptions _frontendOptions = frontendOptions.Value;
