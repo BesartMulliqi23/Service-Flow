@@ -42,6 +42,16 @@ public sealed class AuthController(
             errors["email"] = ["A valid email address is required."];
         }
 
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            errors["displayName"] = ["A display name is required."];
+        }
+
+        if (request.DisplayName?.Length > 200)
+        {
+            errors["displayName"] = ["Display name cannot exceed 200 characters."];
+        }
+
         if (string.IsNullOrWhiteSpace(request.Password))
         {
             errors["password"] = ["A password is required."];
@@ -65,7 +75,8 @@ public sealed class AuthController(
             user = new ApplicationUser
             {
                 UserName = email,
-                Email = email
+                Email = email,
+                DisplayName = request.DisplayName!.Trim()
             };
 
             var createResult = await userManager.CreateAsync(
@@ -312,6 +323,7 @@ public sealed class AuthController(
 
         return Ok(new CurrentUserResponse(
             user.Id,
+            user.DisplayName,
             user.Email!,
             user.EmailConfirmed,
             roles.ToArray()
