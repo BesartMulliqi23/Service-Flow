@@ -96,6 +96,11 @@ public sealed class ExternalAuthService(
         return info.Principal.FindFirstValue(ClaimTypes.Email);
     }
 
+    private static string? GetDisplayName(ExternalLoginInfo info)
+    {
+        return info.Principal.FindFirstValue(ClaimTypes.Name);
+    }
+
     private async Task<ExternalAuthenticationResult> LinkExistingUserAsync(ApplicationUser user, ExternalLoginInfo info)
     {
         var linkResult = await userManager.AddLoginAsync(user, info);
@@ -118,6 +123,7 @@ public sealed class ExternalAuthService(
         var user = new ApplicationUser
         {
             UserName = email,
+            DisplayName = GetDisplayName(info) ?? email,
             Email = email,
             EmailConfirmed = true
         };
