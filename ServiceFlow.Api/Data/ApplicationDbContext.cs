@@ -15,5 +15,16 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             .Property(x => x.DisplayName)
             .HasMaxLength(200)
             .IsRequired();
+
+        builder.Entity<ApplicationUser>()
+            .HasOne(u => u.Organization)
+            .WithMany(o => o.Users)
+            .HasForeignKey(u => u.OrganizationId)
+            .IsRequired();
+
+        builder.Entity<Organization>()
+            .Property(o => o.Name)
+            .HasMaxLength(200)
+            .IsRequired();
     }
 }
