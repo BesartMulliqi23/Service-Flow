@@ -7,6 +7,8 @@ namespace ServiceFlow.Api.Data;
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbContextOptions) 
     : IdentityDbContext<ApplicationUser>(dbContextOptions)
 {
+    public DbSet<Organization> Organizations => Set<Organization>();
+    
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

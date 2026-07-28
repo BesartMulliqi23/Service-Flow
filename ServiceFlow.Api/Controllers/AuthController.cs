@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Contracts.Authentication;
+using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
@@ -17,6 +18,7 @@ namespace ServiceFlow.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public sealed class AuthController(
+    ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
@@ -52,6 +54,16 @@ public sealed class AuthController(
             errors["displayName"] = ["Display name cannot exceed 200 characters."];
         }
 
+        if (string.IsNullOrWhiteSpace(request.OrganizationName))
+        {
+            errors["organizationName"] = ["Organization name is required."];
+        }
+
+        if (request.OrganizationName?.Length > 200)
+        {
+            errors["organizationName"] = ["Organization name cannot exceed 200 characters."];
+        }
+
         if (string.IsNullOrWhiteSpace(request.Password))
         {
             errors["password"] = ["A password is required."];
@@ -68,15 +80,27 @@ public sealed class AuthController(
         }
 
         var email = request.Email!.Trim();
+        var displayName = request.DisplayName!.Trim();
+        var organizationName = request.OrganizationName!.Trim();
+
         var user = await userManager.FindByEmailAsync(email);
 
         if (user is null)
         {
+            var organization = new Organization
+            {
+                Name = organizationName,
+                CreatedUtc = DateTime.UtcNow
+            };
+
+            dbContext.Organizations.Add(organization);
+
             user = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
-                DisplayName = request.DisplayName!.Trim()
+                DisplayName = displayName,
+                Organization = organization
             };
 
             var createResult = await userManager.CreateAsync(
