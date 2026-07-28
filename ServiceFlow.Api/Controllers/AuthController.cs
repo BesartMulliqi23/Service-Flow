@@ -118,6 +118,20 @@ public sealed class AuthController(
 
                 return CreateValidationProblem(identityErrors);
             }
+
+            var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
+
+            if (!addRoleResult.Succeeded)
+            {
+                var identityErrors = addRoleResult.Errors
+                    .GroupBy(error => error.Code)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.Select(error => error.Description).ToArray()
+                    );
+                
+                return CreateValidationProblem(identityErrors);
+            }
         }
 
         if (!user.EmailConfirmed)
