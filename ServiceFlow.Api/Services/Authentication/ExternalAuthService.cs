@@ -24,6 +24,7 @@ public sealed class ExternalAuthService(
 
     private string SuccessRedirect => $"{_frontendOptions.BaseUrl}/login/success";
     private string FailureRedirect => $"{_frontendOptions.BaseUrl}/login/error";
+    private string ExternalOnboardingRedirect => $"{_frontendOptions.BaseUrl}/onboarding/external";
 
     public AuthenticationProperties Challenge(string provider, string redirectUri)
     {
@@ -71,7 +72,7 @@ public sealed class ExternalAuthService(
             return await LinkExistingUserAsync(existingUser, info);
         }
 
-        return await CreateUserFromExternalLoginAsync(email, info);
+        return await HandleNewExternalUserAsync(email, info);
     }
 
     private async Task<ExternalAuthenticationResult?> SignInExistingExternalUserAsync(ExternalLoginInfo info)
@@ -118,41 +119,14 @@ public sealed class ExternalAuthService(
         return Success();
     }    
 
-    private async Task<ExternalAuthenticationResult> CreateUserFromExternalLoginAsync(string email, ExternalLoginInfo info)
+    private Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(string email, ExternalLoginInfo info)
     {
-        var user = new ApplicationUser
-        {
-            UserName = email,
-            DisplayName = GetDisplayName(info) ?? email,
-            Email = email,
-            EmailConfirmed = true
-        };
-
-        var createResult = await userManager.CreateAsync(user);
-
-        if (!createResult.Succeeded)
-        {
-            return Failure(
-                ExternalAuthenticationStatus.AuthenticationFailed,
-                "The user account could not be created."
-            );
-        }
-
-        var loginResult = await userManager.AddLoginAsync(user, info);
-
-        if (!loginResult.Succeeded)
-        {
-            var deleteResult = await userManager.DeleteAsync(user); // save it, even though we don't use it now, it could be used for logging later
-
-            return Failure(
-                ExternalAuthenticationStatus.AuthenticationFailed,
-                "The external login could not be linked."
-            );
-        }
-
-        await signInManager.SignInAsync(user, isPersistent: false);
-
-        return Success();
+        return Task.FromResult(
+            new ExternalAuthenticationResult(
+                ExternalAuthenticationStatus.Success,
+                ExternalOnboardingRedirect
+            )
+        );
     }
 
     private ExternalAuthenticationResult Success()
