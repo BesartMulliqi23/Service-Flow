@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Contracts.Authentication;
+using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
@@ -17,6 +18,7 @@ namespace ServiceFlow.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public sealed class AuthController(
+    ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
@@ -52,6 +54,16 @@ public sealed class AuthController(
             errors["displayName"] = ["Display name cannot exceed 200 characters."];
         }
 
+        if (string.IsNullOrWhiteSpace(request.OrganizationName))
+        {
+            errors["organizationName"] = ["Organization name is required."];
+        }
+
+        if (request.OrganizationName?.Length > 200)
+        {
+            errors["organizationName"] = ["Organization name cannot exceed 200 characters."];
+        }
+
         if (string.IsNullOrWhiteSpace(request.Password))
         {
             errors["password"] = ["A password is required."];
@@ -68,31 +80,67 @@ public sealed class AuthController(
         }
 
         var email = request.Email!.Trim();
+        var displayName = request.DisplayName!.Trim();
+        var organizationName = request.OrganizationName!.Trim();
+
         var user = await userManager.FindByEmailAsync(email);
 
         if (user is null)
         {
-            user = new ApplicationUser
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            try
             {
-                UserName = email,
-                Email = email,
-                DisplayName = request.DisplayName!.Trim()
-            };
+                var organization = new Organization
+                {
+                    Name = organizationName,
+                    CreatedUtc = DateTime.UtcNow
+                };
 
-            var createResult = await userManager.CreateAsync(
-                user,
-                request.Password!);
+                dbContext.Organizations.Add(organization);
 
-            if (!createResult.Succeeded)
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    DisplayName = displayName,
+                    Organization = organization
+                };
+
+                var createResult = await userManager.CreateAsync(user, request.Password!);
+
+                if (!createResult.Succeeded)
+                {
+                    var identityErrors = createResult.Errors
+                        .GroupBy(error => error.Code)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => group.Select(error => error.Description).ToArray()
+                        );
+
+                    return CreateValidationProblem(identityErrors);
+                }
+
+                var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
+
+                if (!addRoleResult.Succeeded)
+                {
+                    var identityErrors = addRoleResult.Errors
+                        .GroupBy(error => error.Code)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => group.Select(error => error.Description).ToArray()
+                        );
+                    
+                    return CreateValidationProblem(identityErrors);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
             {
-                var identityErrors = createResult.Errors
-                    .GroupBy(error => error.Code)
-                    .ToDictionary(
-                        group => group.Key,
-                        group => group.Select(error => error.Description).ToArray()
-                    );
-
-                return CreateValidationProblem(identityErrors);
+                dbContext.ChangeTracker.Clear();
+                throw;
             }
         }
 
