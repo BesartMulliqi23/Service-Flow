@@ -87,50 +87,60 @@ public sealed class AuthController(
 
         if (user is null)
         {
-            var organization = new Organization
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            try
             {
-                Name = organizationName,
-                CreatedUtc = DateTime.UtcNow
-            };
+                var organization = new Organization
+                {
+                    Name = organizationName,
+                    CreatedUtc = DateTime.UtcNow
+                };
 
-            dbContext.Organizations.Add(organization);
+                dbContext.Organizations.Add(organization);
 
-            user = new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                DisplayName = displayName,
-                Organization = organization
-            };
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    DisplayName = displayName,
+                    Organization = organization
+                };
 
-            var createResult = await userManager.CreateAsync(
-                user,
-                request.Password!);
+                var createResult = await userManager.CreateAsync(user, request.Password!);
 
-            if (!createResult.Succeeded)
-            {
-                var identityErrors = createResult.Errors
-                    .GroupBy(error => error.Code)
-                    .ToDictionary(
-                        group => group.Key,
-                        group => group.Select(error => error.Description).ToArray()
-                    );
+                if (!createResult.Succeeded)
+                {
+                    var identityErrors = createResult.Errors
+                        .GroupBy(error => error.Code)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => group.Select(error => error.Description).ToArray()
+                        );
 
-                return CreateValidationProblem(identityErrors);
+                    return CreateValidationProblem(identityErrors);
+                }
+
+                var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
+
+                if (!addRoleResult.Succeeded)
+                {
+                    var identityErrors = addRoleResult.Errors
+                        .GroupBy(error => error.Code)
+                        .ToDictionary(
+                            group => group.Key,
+                            group => group.Select(error => error.Description).ToArray()
+                        );
+                    
+                    return CreateValidationProblem(identityErrors);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
             }
-
-            var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
-
-            if (!addRoleResult.Succeeded)
+            catch
             {
-                var identityErrors = addRoleResult.Errors
-                    .GroupBy(error => error.Code)
-                    .ToDictionary(
-                        group => group.Key,
-                        group => group.Select(error => error.Description).ToArray()
-                    );
-                
-                return CreateValidationProblem(identityErrors);
+                dbContext.ChangeTracker.Clear();
+                throw;
             }
         }
 
