@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Settings;
 
@@ -12,7 +13,8 @@ namespace ServiceFlow.Api.Services.Authentication;
 public sealed class ExternalAuthService(
     SignInManager<ApplicationUser> signInManager,
     UserManager<ApplicationUser> userManager,
-    IOptions<FrontendOptions> frontendOptions
+    IOptions<FrontendOptions> frontendOptions,
+    ApplicationDbContext dbContext
 ) : IExternalAuthService
 {
     private static readonly HashSet<string> SupportedProviders = [
@@ -24,6 +26,7 @@ public sealed class ExternalAuthService(
 
     private string SuccessRedirect => $"{_frontendOptions.BaseUrl}/login/success";
     private string FailureRedirect => $"{_frontendOptions.BaseUrl}/login/error";
+    private string ExternalOnboardingRedirect => $"{_frontendOptions.BaseUrl}/onboarding/external";
 
     public AuthenticationProperties Challenge(string provider, string redirectUri)
     {
@@ -71,7 +74,96 @@ public sealed class ExternalAuthService(
             return await LinkExistingUserAsync(existingUser, info);
         }
 
-        return await CreateUserFromExternalLoginAsync(email, info);
+        return await HandleNewExternalUserAsync(email, info);
+    }
+
+    public async Task<ExternalAuthenticationResult> CompleteExternalOnboardingAsync(
+        string organizationName, CancellationToken cancellationToken)
+    {
+        var info = await signInManager.GetExternalLoginInfoAsync();
+
+        if (info is null)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "The external authentication session could not be found."
+            );
+        }
+
+        var email = GetRequiredEmail(info);
+
+        if (email is null)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.MissingEmail,
+                "The external provider did not supply an email address."
+            );
+        }
+
+        var displayName = GetDisplayName(info) ?? email;
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var organization = new Organization
+            {
+                Name = organizationName,
+                CreatedUtc = DateTime.UtcNow
+            };
+
+            dbContext.Organizations.Add(organization);
+
+            var user = new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                DisplayName = displayName,
+                Organization = organization
+            };
+
+            var createResult = await userManager.CreateAsync(user);
+
+            if (!createResult.Succeeded)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    "The user account could not be created."
+                );
+            }
+
+            var linkResult = await userManager.AddLoginAsync(user, info);
+
+            if (!linkResult.Succeeded)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    "The external account could not be linked."
+                );
+            }
+
+            var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
+
+            if (!addRoleResult.Succeeded)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    "The owner role could not be assigned."
+                );
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            await signInManager.SignInAsync(user, isPersistent: false);
+
+            return Success();
+        }
+        catch
+        {
+            dbContext.ChangeTracker.Clear();
+            throw;
+        }  
     }
 
     private async Task<ExternalAuthenticationResult?> SignInExistingExternalUserAsync(ExternalLoginInfo info)
@@ -118,41 +210,14 @@ public sealed class ExternalAuthService(
         return Success();
     }    
 
-    private async Task<ExternalAuthenticationResult> CreateUserFromExternalLoginAsync(string email, ExternalLoginInfo info)
+    private Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(string email, ExternalLoginInfo info)
     {
-        var user = new ApplicationUser
-        {
-            UserName = email,
-            DisplayName = GetDisplayName(info) ?? email,
-            Email = email,
-            EmailConfirmed = true
-        };
-
-        var createResult = await userManager.CreateAsync(user);
-
-        if (!createResult.Succeeded)
-        {
-            return Failure(
-                ExternalAuthenticationStatus.AuthenticationFailed,
-                "The user account could not be created."
-            );
-        }
-
-        var loginResult = await userManager.AddLoginAsync(user, info);
-
-        if (!loginResult.Succeeded)
-        {
-            var deleteResult = await userManager.DeleteAsync(user); // save it, even though we don't use it now, it could be used for logging later
-
-            return Failure(
-                ExternalAuthenticationStatus.AuthenticationFailed,
-                "The external login could not be linked."
-            );
-        }
-
-        await signInManager.SignInAsync(user, isPersistent: false);
-
-        return Success();
+        return Task.FromResult(
+            new ExternalAuthenticationResult(
+                ExternalAuthenticationStatus.Success,
+                ExternalOnboardingRedirect
+            )
+        );
     }
 
     private ExternalAuthenticationResult Success()

@@ -460,6 +460,34 @@ public sealed class AuthController(
         return Redirect(result.RedirectUri);
     }
 
+    [HttpPost("external/onboarding")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CompleteExternalOnboarding(
+        ExternalOnboardingRequest request, CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(request.OrganizationName))
+        {
+            errors["organizationName"] = ["Organization name is required."];
+        }
+
+        if (request.OrganizationName?.Length > 200)
+        {
+            errors["organizationName"] = ["Organization name cannot exceed 200 characters."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return CreateValidationProblem(errors);
+        }
+
+        var result = await externalAuthService.CompleteExternalOnboardingAsync(
+            request.OrganizationName!.Trim(), cancellationToken);
+
+        return Redirect(result.RedirectUri);
+    }
+
     private async Task SendPasswordResetEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
