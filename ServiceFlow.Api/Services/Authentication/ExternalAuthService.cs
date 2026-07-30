@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Settings;
 
 namespace ServiceFlow.Api.Services.Authentication;
@@ -14,7 +15,8 @@ public sealed class ExternalAuthService(
     SignInManager<ApplicationUser> signInManager,
     UserManager<ApplicationUser> userManager,
     IOptions<FrontendOptions> frontendOptions,
-    ApplicationDbContext dbContext
+    //ApplicationDbContext dbContext,
+    IOrganizationOnboardingService organizationOnboardingService
 ) : IExternalAuthService
 {
     private static readonly HashSet<string> SupportedProviders = [
@@ -74,7 +76,7 @@ public sealed class ExternalAuthService(
             return await LinkExistingUserAsync(existingUser, info);
         }
 
-        return await HandleNewExternalUserAsync(email, info);
+        return HandleNewExternalUserAsync();
     }
 
     public async Task<ExternalAuthenticationResult> CompleteExternalOnboardingAsync(
@@ -102,68 +104,27 @@ public sealed class ExternalAuthService(
 
         var displayName = GetDisplayName(info) ?? email;
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var result = await organizationOnboardingService.CreateOrganizationOwnerAsync(
+            email: email,
+            displayName: displayName,
+            organizationName: organizationName,
+            password: null,
+            externalLoginInfo: info,
+            emailConfirmed: true,
+            cancellationToken: cancellationToken
+        );
 
-        try
+        if (!result.Succeeded)
         {
-            var organization = new Organization
-            {
-                Name = organizationName,
-                CreatedUtc = DateTime.UtcNow
-            };
-
-            dbContext.Organizations.Add(organization);
-
-            var user = new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                EmailConfirmed = true,
-                DisplayName = displayName,
-                Organization = organization
-            };
-
-            var createResult = await userManager.CreateAsync(user);
-
-            if (!createResult.Succeeded)
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    "The user account could not be created."
-                );
-            }
-
-            var linkResult = await userManager.AddLoginAsync(user, info);
-
-            if (!linkResult.Succeeded)
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    "The external account could not be linked."
-                );
-            }
-
-            var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
-
-            if (!addRoleResult.Succeeded)
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    "The owner role could not be assigned."
-                );
-            }
-
-            await transaction.CommitAsync(cancellationToken);
-
-            await signInManager.SignInAsync(user, isPersistent: false);
-
-            return Success();
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "The external onboarding process could not be completed."
+            );
         }
-        catch
-        {
-            dbContext.ChangeTracker.Clear();
-            throw;
-        }  
+
+        await signInManager.SignInAsync(result.User!, isPersistent: false);
+
+        return Success();
     }
 
     private async Task<ExternalAuthenticationResult?> SignInExistingExternalUserAsync(ExternalLoginInfo info)
@@ -210,13 +171,11 @@ public sealed class ExternalAuthService(
         return Success();
     }    
 
-    private Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(string email, ExternalLoginInfo info)
+    private ExternalAuthenticationResult HandleNewExternalUserAsync()
     {
-        return Task.FromResult(
-            new ExternalAuthenticationResult(
-                ExternalAuthenticationStatus.Success,
-                ExternalOnboardingRedirect
-            )
+        return new ExternalAuthenticationResult(
+            ExternalAuthenticationStatus.Success,
+            ExternalOnboardingRedirect
         );
     }
 

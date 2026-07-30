@@ -11,6 +11,7 @@ using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
+using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Settings;
 
 namespace ServiceFlow.Api.Controllers;
@@ -18,13 +19,14 @@ namespace ServiceFlow.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public sealed class AuthController(
-    ApplicationDbContext dbContext,
+    // ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
     IOptions<FrontendOptions> frontendOptions,
     ILogger<AuthController> logger,
-    IExternalAuthService externalAuthService
+    IExternalAuthService externalAuthService,
+    IOrganizationOnboardingService organizationOnboardingService
 ) : ControllerBase
 {
     private readonly FrontendOptions _frontendOptions = frontendOptions.Value;
@@ -87,64 +89,25 @@ public sealed class AuthController(
 
         if (user is null)
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            var result = await organizationOnboardingService.CreateOrganizationOwnerAsync(
+                email: email,
+                displayName: displayName,
+                organizationName: organizationName,
+                password: request.Password!.Trim(),
+                externalLoginInfo: null,
+                emailConfirmed: false,
+                cancellationToken: cancellationToken
+            );
 
-            try
+            if (!result.Succeeded)
             {
-                var organization = new Organization
-                {
-                    Name = organizationName,
-                    CreatedUtc = DateTime.UtcNow
-                };
-
-                dbContext.Organizations.Add(organization);
-
-                user = new ApplicationUser
-                {
-                    UserName = email,
-                    Email = email,
-                    DisplayName = displayName,
-                    Organization = organization
-                };
-
-                var createResult = await userManager.CreateAsync(user, request.Password!);
-
-                if (!createResult.Succeeded)
-                {
-                    var identityErrors = createResult.Errors
-                        .GroupBy(error => error.Code)
-                        .ToDictionary(
-                            group => group.Key,
-                            group => group.Select(error => error.Description).ToArray()
-                        );
-
-                    return CreateValidationProblem(identityErrors);
-                }
-
-                var addRoleResult = await userManager.AddToRoleAsync(user, ApplicationRoles.Owner);
-
-                if (!addRoleResult.Succeeded)
-                {
-                    var identityErrors = addRoleResult.Errors
-                        .GroupBy(error => error.Code)
-                        .ToDictionary(
-                            group => group.Key,
-                            group => group.Select(error => error.Description).ToArray()
-                        );
-                    
-                    return CreateValidationProblem(identityErrors);
-                }
-
-                await transaction.CommitAsync(cancellationToken);
+                return CreateValidationProblem(result.Errors);
             }
-            catch
-            {
-                dbContext.ChangeTracker.Clear();
-                throw;
-            }
+
+            user = result.User;
         }
 
-        if (!user.EmailConfirmed)
+        if (!user!.EmailConfirmed)
         {
             try
             {
