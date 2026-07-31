@@ -25,7 +25,7 @@ public sealed class InvitationService(
             return InvitationResult.Failure("Invalid role.");
         }
 
-        var user = await FindCurrentUserAsync(principal);
+        var user = await userManager.GetUserAsync(principal);
 
         if (user is null)
         {
@@ -76,10 +76,5 @@ public sealed class InvitationService(
     private static bool IsValidRole(string role)
     {
         return ApplicationRoles.All.Contains(role);
-    }
-
-    private async Task<ApplicationUser?> FindCurrentUserAsync(ClaimsPrincipal principal)
-    {
-        return await userManager.GetUserAsync(principal);
     }
 }
