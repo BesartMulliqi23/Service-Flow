@@ -4,6 +4,7 @@ using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
+using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Settings;
 
@@ -41,6 +42,7 @@ builder.Services.Configure<MicrosoftAuthenticationOptions>(
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 builder.Services.AddScoped<IOrganizationOnboardingService, OrganizationOnboardingService>();
+builder.Services.AddScoped<IInvitationService, InvitationService>();
 
 builder.Services.AddAuthorization();
 
