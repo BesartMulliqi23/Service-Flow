@@ -10,7 +10,7 @@ namespace ServiceFlow.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = ApplicationRoles.Owner)]
-public sealed class InvitationController(
+public sealed class InvitationsController(
     IInvitationService invitationService
 ) : ControllerBase
 {
