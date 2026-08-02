@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ServiceFlow.Api.Contracts.Invitations;
 
 namespace ServiceFlow.Api.Services.Invitations;
 
@@ -13,6 +14,13 @@ public interface IInvitationService
 
     Task<InvitationDetailsResult> GetInvitationAsync(
         string token, 
+        CancellationToken cancellationToken
+    );
+
+    Task<CompleteInvitationResult> CompleteInvitationAsync(
+        string token,
+        string displayName,
+        string password,
         CancellationToken cancellationToken
     );
 }

@@ -16,6 +16,7 @@ namespace ServiceFlow.Api.Services.Invitations;
 public sealed class InvitationService(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
     IOptions<FrontendOptions> frontendOptions
 ) : IInvitationService
@@ -106,6 +107,69 @@ public sealed class InvitationService(
         var response = new InvitationDetailsResponse(invitation.Email, invitation.Organization.Name, invitation.Role);
 
         return  InvitationDetailsResult.Success(response);
+    }
+
+    public async Task<CompleteInvitationResult> CompleteInvitationAsync(
+        string token, 
+        string displayName, 
+        string password,  
+        CancellationToken cancellationToken
+    )
+    {
+        var invitation = await dbContext.Invitations
+            .SingleOrDefaultAsync(i => i.Token == token, cancellationToken);
+
+        var now = DateTime.UtcNow;
+
+        if (invitation is null)
+        {
+            return CompleteInvitationResult.Failure("Invalid invitation token.");
+        }
+
+        if (invitation.AcceptedUtc is not null)
+        {
+            return CompleteInvitationResult.Failure("This invitation has already been accepted.");
+        }
+
+        if (invitation.ExpiresUtc < now)
+        {
+            return CompleteInvitationResult.Failure("This invitation has expired.");   
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var user = new ApplicationUser
+        {
+            UserName = invitation.Email,
+            Email = invitation.Email,
+            EmailConfirmed = true,
+            DisplayName = displayName,
+            OrganizationId = invitation.OrganizationId
+        };
+
+        var createUserResult = await userManager.CreateAsync(user, password);
+
+        if (!createUserResult.Succeeded)
+        {
+            return CompleteInvitationResult.Failure(string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
+        }
+
+        var addToRoleResult = await userManager.AddToRoleAsync(user, invitation.Role);
+
+        if (!addToRoleResult.Succeeded)
+        {
+            return CompleteInvitationResult.Failure(string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
+        }
+
+        invitation.AcceptedUtc = now;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        await signInManager.SignInAsync(user, isPersistent: false);
+
+        return CompleteInvitationResult.Success();
     }
 
     private async Task SendInvitationEmailAsync(Invitation invitation, string organizationName, CancellationToken cancellationToken)

@@ -87,4 +87,66 @@ public sealed class InvitationsController(
                 throw new InvalidOperationException($"Unexpected invitation status: {result.Status}");
         }
     }
+
+    [HttpPost("accept")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CompleteInvitation(CompleteInvitationRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(new
+            {
+                message = "An invitation token is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            return BadRequest(new
+            {
+                message = "A display name is required."
+            });
+        }
+
+        if (request.DisplayName.Length > 200)
+        {
+            return BadRequest(new
+            {
+                message = "Display name can't exceed 200 characters."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest(new
+            {
+                message = "A password is required."
+            });
+        }
+
+        if (request.Password != request.ConfirmPassword)
+        {
+            return BadRequest(new
+            {
+                message = "Passwords do not match."
+            });
+        }
+
+        var result = await invitationService.CompleteInvitationAsync(
+            request.Token.Trim(),
+            request.DisplayName.Trim(),
+            request.Password,
+            cancellationToken
+        );
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                message = result.Error
+            });
+        }
+
+        return NoContent();
+    }
 }
