@@ -10,4 +10,9 @@ public interface IInvitationService
         string role,
         CancellationToken cancellationToken
     );
+
+    Task<InvitationDetailsResult> GetInvitationAsync(
+        string token, 
+        CancellationToken cancellationToken
+    );
 }

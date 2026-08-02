@@ -52,4 +52,39 @@ public sealed class InvitationsController(
 
         return NoContent();
     }
+
+    [HttpGet("accept")]
+    [AllowAnonymous]
+    public async Task<IActionResult> AcceptInvitation([FromQuery] string token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(new
+            {
+                message = "An invitation token is required."
+            });
+        }
+
+        var result = await invitationService.GetInvitationAsync(token, cancellationToken);
+
+        switch (result.Status)
+        {
+            case InvitationStatus.Success:
+                return Ok(result.Invitation);
+            case InvitationStatus.NotFound:
+                return NotFound();
+            case InvitationStatus.Expired:
+                return StatusCode(StatusCodes.Status410Gone, new
+                {
+                    message = "This invitation has expired."
+                });
+            case InvitationStatus.Accepted:
+                return StatusCode(StatusCodes.Status410Gone, new
+                {
+                    message = "This invitation has already been accepted."
+                });
+            default:
+                throw new InvalidOperationException($"Unexpected invitation status: {result.Status}");
+        }
+    }
 }

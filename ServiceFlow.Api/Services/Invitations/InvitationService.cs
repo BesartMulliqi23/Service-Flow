@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using ServiceFlow.Api.Contracts.Invitations;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Email;
@@ -79,6 +80,32 @@ public sealed class InvitationService(
         await SendInvitationEmailAsync(invitation, organizationName, cancellationToken);
 
         return InvitationResult.Success();
+    }
+
+    public async Task<InvitationDetailsResult> GetInvitationAsync(string token, CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.Invitations
+            .Include(i => i.Organization)
+            .SingleOrDefaultAsync(i => i.Token == token, cancellationToken);
+
+        if (invitation is null)
+        {
+            return InvitationDetailsResult.NotFound();
+        }
+
+        if (invitation.AcceptedUtc is not null)
+        {
+            return InvitationDetailsResult.Accepted();
+        }
+
+        if (invitation.ExpiresUtc < DateTime.UtcNow)
+        {
+            return InvitationDetailsResult.Expired();
+        }
+
+        var response = new InvitationDetailsResponse(invitation.Email, invitation.Organization.Name, invitation.Role);
+
+        return  InvitationDetailsResult.Success(response);
     }
 
     private async Task SendInvitationEmailAsync(Invitation invitation, string organizationName, CancellationToken cancellationToken)
