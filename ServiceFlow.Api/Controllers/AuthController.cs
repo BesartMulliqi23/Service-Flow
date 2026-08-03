@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Contracts.Authentication;
-using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Email;
@@ -19,7 +18,6 @@ namespace ServiceFlow.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public sealed class AuthController(
-    // ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
@@ -401,7 +399,14 @@ public sealed class AuthController(
                 return Problem("Could not generate callback URL.");
             }
 
-            var properties = externalAuthService.Challenge(provider, redirectUri);
+            var properties = externalAuthService.Challenge(
+                provider, 
+                redirectUri,
+                new Dictionary<string, string?>
+                {
+                    ["flow"] = "onboarding"
+                }
+            );
 
             return Challenge(properties, provider);
         }
@@ -414,11 +419,53 @@ public sealed class AuthController(
         }
     }
 
+    [HttpGet("external/{provider}/invitation")]
+    [AllowAnonymous]
+    public IActionResult ExternalInvitationSignIn(string provider, [FromQuery] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(new
+            {
+                message = "An invitation token is required."
+            });
+        }
+        
+        try
+        {
+            var redirectUri = Url.Action(nameof(ExternalLoginCallback), "Auth");
+
+            if (redirectUri is null)
+            {
+                return Problem("Could not generate callback URL.");
+            }
+
+            var properties = externalAuthService.Challenge(
+                provider,
+                redirectUri,
+                new Dictionary<string, string?>
+                {
+                    ["flow"] = "invitation",
+                    ["token"] = token
+                }
+            );
+
+            return Challenge(properties, provider);
+        }
+        catch (ArgumentException e)
+        {
+            return BadRequest(new
+            {
+                message = e.Message
+            });
+        }
+    } 
+
     [HttpGet("external/callback")]
     [AllowAnonymous]
-    public async Task<IActionResult> ExternalLoginCallback()
+    public async Task<IActionResult> ExternalLoginCallback(CancellationToken cancellationToken)
     {
-        var result = await externalAuthService.HandleCallbackAsync();
+        var result = await externalAuthService.HandleCallbackAsync(cancellationToken);
 
         return Redirect(result.RedirectUri);
     }

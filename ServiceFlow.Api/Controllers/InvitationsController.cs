@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Contracts.Invitations;
 using ServiceFlow.Api.Models;
@@ -11,7 +12,8 @@ namespace ServiceFlow.Api.Controllers;
 [Route("api/[controller]")]
 [Authorize(Roles = ApplicationRoles.Owner)]
 public sealed class InvitationsController(
-    IInvitationService invitationService
+    IInvitationService invitationService,
+    SignInManager<ApplicationUser> signInManager
 ) : ControllerBase
 {
     [HttpPost]
@@ -146,6 +148,8 @@ public sealed class InvitationsController(
                 message = result.Error
             });
         }
+
+        await signInManager.SignInAsync(result.User!, isPersistent: false);
 
         return NoContent();
     }

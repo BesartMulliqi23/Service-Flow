@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Settings;
 
@@ -15,8 +15,8 @@ public sealed class ExternalAuthService(
     SignInManager<ApplicationUser> signInManager,
     UserManager<ApplicationUser> userManager,
     IOptions<FrontendOptions> frontendOptions,
-    //ApplicationDbContext dbContext,
-    IOrganizationOnboardingService organizationOnboardingService
+    IOrganizationOnboardingService organizationOnboardingService,
+    IInvitationService invitationService
 ) : IExternalAuthService
 {
     private static readonly HashSet<string> SupportedProviders = [
@@ -30,17 +30,31 @@ public sealed class ExternalAuthService(
     private string FailureRedirect => $"{_frontendOptions.BaseUrl}/login/error";
     private string ExternalOnboardingRedirect => $"{_frontendOptions.BaseUrl}/onboarding/external";
 
-    public AuthenticationProperties Challenge(string provider, string redirectUri)
+    public AuthenticationProperties Challenge(
+        string provider, 
+        string redirectUri,
+        IDictionary<string, string?>? items = null
+    )
     {
         if (!SupportedProviders.Contains(provider))
         {
             throw new ArgumentException($"Unsupported authentication provider '{provider}'.", nameof(provider)); 
         }
 
-        return signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUri);
+        var properties = signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUri);
+
+        if (items is not null)
+        {
+            foreach (var item in items)
+            {
+                properties.Items[item.Key] = item.Value;
+            }
+        }
+
+        return properties;
     }
 
-    public async Task<ExternalAuthenticationResult> HandleCallbackAsync()
+    public async Task<ExternalAuthenticationResult> HandleCallbackAsync(CancellationToken cancellationToken)
     {
         var info = await signInManager.GetExternalLoginInfoAsync();
 
@@ -76,7 +90,7 @@ public sealed class ExternalAuthService(
             return await LinkExistingUserAsync(existingUser, info);
         }
 
-        return HandleNewExternalUserAsync();
+        return await HandleNewExternalUserAsync(info, email, cancellationToken);
     }
 
     public async Task<ExternalAuthenticationResult> CompleteExternalOnboardingAsync(
@@ -171,11 +185,72 @@ public sealed class ExternalAuthService(
         return Success();
     }    
 
-    private ExternalAuthenticationResult HandleNewExternalUserAsync()
+    private async Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(
+        ExternalLoginInfo info,
+        string email,
+        CancellationToken cancellationToken
+    )
     {
-        return new ExternalAuthenticationResult(
-            ExternalAuthenticationStatus.Success,
-            ExternalOnboardingRedirect
+        string? flow = null;
+        info.AuthenticationProperties?.Items.TryGetValue("flow", out flow);
+
+        if (flow is not null && flow.Equals("invitation", StringComparison.OrdinalIgnoreCase))
+        {
+            string? token = null;
+            info.AuthenticationProperties?.Items.TryGetValue("token", out token);
+
+            if (token is null)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    "The invitation could not be verified."
+                );
+            }
+
+            var invitation = await invitationService.FindValidInvitationByTokenAsync(token, cancellationToken);
+
+            if (invitation is null)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    "The invitation is invalid, expired, or has already been accepted."
+                );
+            }
+
+            if (!string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase))
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    "Please sign in with the email address that received this invitation."
+                );
+            }
+
+            var invitationResult = await invitationService.CompleteExternalInvitationAsync(invitation, info, cancellationToken);
+
+            if (!invitationResult.Succeeded)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.AuthenticationFailed,
+                    invitationResult.Error ?? "The invitation could not be accepted."
+                );
+            }
+
+            await signInManager.SignInAsync(invitationResult.User!, isPersistent: false);
+
+            return Success();
+        }
+
+        if (string.Equals(flow, "onboarding", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ExternalAuthenticationResult(
+                ExternalAuthenticationStatus.Success,
+                ExternalOnboardingRedirect
+            );
+        }
+
+        return Failure(
+            ExternalAuthenticationStatus.AuthenticationFailed,
+            "The authentication flow could not be determined."
         );
     }
 

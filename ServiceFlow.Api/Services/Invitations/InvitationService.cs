@@ -16,7 +16,6 @@ namespace ServiceFlow.Api.Services.Invitations;
 public sealed class InvitationService(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager,
     IEmailSender emailSender,
     IOptions<FrontendOptions> frontendOptions
 ) : IInvitationService
@@ -167,9 +166,67 @@ public sealed class InvitationService(
 
         await transaction.CommitAsync(cancellationToken);
 
-        await signInManager.SignInAsync(user, isPersistent: false);
+        return CompleteInvitationResult.Success(user);
+    }
 
-        return CompleteInvitationResult.Success();
+    public async Task<CompleteInvitationResult> CompleteExternalInvitationAsync(
+        Invitation invitation,
+        ExternalLoginInfo externalLoginInfo,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var user = new ApplicationUser
+        {
+            UserName = invitation.Email,
+            Email = invitation.Email,
+            EmailConfirmed = true,
+            DisplayName = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Name) ?? invitation.Email,
+            OrganizationId = invitation.OrganizationId
+        };
+
+        var createUserResult = await userManager.CreateAsync(user);
+
+        if (!createUserResult.Succeeded)
+        {
+            return CompleteInvitationResult.Failure(string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
+        }
+
+        var addLoginResult = await userManager.AddLoginAsync(user, externalLoginInfo);
+
+        if (!addLoginResult.Succeeded)
+        {
+            return CompleteInvitationResult.Failure(string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
+        }
+
+        var addToRoleResult = await userManager.AddToRoleAsync(user, invitation.Role);
+
+        if (!addToRoleResult.Succeeded)
+        {
+            return CompleteInvitationResult.Failure(string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
+        }
+
+        invitation.AcceptedUtc = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        return CompleteInvitationResult.Success(user);
+    }
+
+    public async Task<Invitation?> FindValidInvitationByTokenAsync(string token, CancellationToken cancellationToken)
+    {
+        var invitation = await dbContext.Invitations
+            .SingleOrDefaultAsync(i => i.Token == token, cancellationToken);
+
+        if (invitation is null || invitation.AcceptedUtc is not null || invitation.ExpiresUtc < DateTime.UtcNow)
+        {
+            return null;
+        }
+
+        return invitation;
     }
 
     private async Task SendInvitationEmailAsync(Invitation invitation, string organizationName, CancellationToken cancellationToken)
