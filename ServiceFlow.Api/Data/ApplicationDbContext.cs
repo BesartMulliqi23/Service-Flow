@@ -8,6 +8,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     : IdentityDbContext<ApplicationUser>(dbContextOptions)
 {
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<Invitation> Invitations => Set<Invitation>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -28,5 +29,30 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             .Property(o => o.Name)
             .HasMaxLength(200)
             .IsRequired();
+
+        builder.Entity<Invitation>()
+            .Property(i => i.Email)
+            .HasMaxLength(256)
+            .IsRequired();
+
+        builder.Entity<Invitation>()
+            .Property(i => i.Role)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Entity<Invitation>()
+            .Property(i => i.Token)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Entity<Invitation>()
+            .HasOne(i => i.Organization)
+            .WithMany()
+            .HasForeignKey(i => i.OrganizationId)
+            .IsRequired();
+
+        builder.Entity<Invitation>()
+            .HasIndex(i => new { i.OrganizationId, i.Email })
+            .IsUnique();
     }
 }
