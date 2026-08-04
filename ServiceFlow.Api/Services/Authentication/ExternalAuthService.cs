@@ -194,63 +194,77 @@ public sealed class ExternalAuthService(
         string? flow = null;
         info.AuthenticationProperties?.Items.TryGetValue("flow", out flow);
 
-        if (flow is not null && flow.Equals("invitation", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(flow, "invitation", StringComparison.OrdinalIgnoreCase))
         {
-            string? token = null;
-            info.AuthenticationProperties?.Items.TryGetValue("token", out token);
-
-            if (token is null)
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    "The invitation could not be verified."
-                );
-            }
-
-            var invitation = await invitationService.FindValidInvitationByTokenAsync(token, cancellationToken);
-
-            if (invitation is null)
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    "The invitation is invalid, expired, or has already been accepted."
-                );
-            }
-
-            if (!string.Equals(invitation.Email, email, StringComparison.OrdinalIgnoreCase))
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    "Please sign in with the email address that received this invitation."
-                );
-            }
-
-            var invitationResult = await invitationService.CompleteExternalInvitationAsync(invitation, info, cancellationToken);
-
-            if (!invitationResult.Succeeded)
-            {
-                return Failure(
-                    ExternalAuthenticationStatus.AuthenticationFailed,
-                    invitationResult.Error ?? "The invitation could not be accepted."
-                );
-            }
-
-            await signInManager.SignInAsync(invitationResult.User!, isPersistent: false);
-
-            return Success();
+            return await HandleInvitationFlowAsync(info, email, cancellationToken);
         }
 
         if (string.Equals(flow, "onboarding", StringComparison.OrdinalIgnoreCase))
         {
-            return new ExternalAuthenticationResult(
-                ExternalAuthenticationStatus.Success,
-                ExternalOnboardingRedirect
-            );
+            return HandleOnboardingFlow();
         }
 
         return Failure(
             ExternalAuthenticationStatus.AuthenticationFailed,
             "The authentication flow could not be determined."
+        );
+    }
+
+    private async Task<ExternalAuthenticationResult> HandleInvitationFlowAsync(
+        ExternalLoginInfo info, 
+        string email,
+        CancellationToken cancellationToken
+    )
+    {
+        string? token = null;
+        info.AuthenticationProperties?.Items.TryGetValue("token", out token);
+
+        if (token is null)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "The invitation could not be verified."
+            );
+        }
+
+        var invitation = await invitationService.FindValidInvitationByTokenAsync(token, cancellationToken);
+
+        if (invitation is null)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "The invitation is invalid, expired, or has already been accepted."
+            );
+        }
+
+        if (!string.Equals(email, invitation.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "Please sign in with the email address that received this invitation."
+            );
+        }
+
+        var result = await invitationService.CompleteExternalInvitationAsync(invitation, info, cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                result.Error ?? "The invitation could not be accepted."
+            );
+        }
+
+        await signInManager.SignInAsync(result.User!, isPersistent: false);
+
+        return Success();
+    }
+
+    private ExternalAuthenticationResult HandleOnboardingFlow()
+    {
+        return new ExternalAuthenticationResult(
+            ExternalAuthenticationStatus.Success,
+            ExternalOnboardingRedirect
         );
     }
 

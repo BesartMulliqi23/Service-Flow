@@ -118,33 +118,16 @@ public sealed class InvitationService(
         var invitation = await dbContext.Invitations
             .SingleOrDefaultAsync(i => i.Token == token, cancellationToken);
 
-        var now = DateTime.UtcNow;
+        var validationError = ValidateInvitation(invitation);
 
-        if (invitation is null)
+        if (validationError is not null)
         {
-            return CompleteInvitationResult.Failure("Invalid invitation token.");
-        }
-
-        if (invitation.AcceptedUtc is not null)
-        {
-            return CompleteInvitationResult.Failure("This invitation has already been accepted.");
-        }
-
-        if (invitation.ExpiresUtc < now)
-        {
-            return CompleteInvitationResult.Failure("This invitation has expired.");   
+            return CompleteInvitationResult.Failure(validationError);
         }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-        var user = new ApplicationUser
-        {
-            UserName = invitation.Email,
-            Email = invitation.Email,
-            EmailConfirmed = true,
-            DisplayName = displayName,
-            OrganizationId = invitation.OrganizationId
-        };
+        var user = CreateInvitationUser(invitation!, displayName);
 
         var createUserResult = await userManager.CreateAsync(user, password);
 
@@ -153,16 +136,12 @@ public sealed class InvitationService(
             return CompleteInvitationResult.Failure(string.Join(", ", createUserResult.Errors.Select(e => e.Description)));
         }
 
-        var addToRoleResult = await userManager.AddToRoleAsync(user, invitation.Role);
+        var finalizeResult = await FinalizeInvitationAsync(invitation!, user, cancellationToken);
 
-        if (!addToRoleResult.Succeeded)
+        if (finalizeResult is not null)
         {
-            return CompleteInvitationResult.Failure(string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
+            return finalizeResult;
         }
-
-        invitation.AcceptedUtc = now;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
 
@@ -177,14 +156,10 @@ public sealed class InvitationService(
     {
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-        var user = new ApplicationUser
-        {
-            UserName = invitation.Email,
-            Email = invitation.Email,
-            EmailConfirmed = true,
-            DisplayName = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Name) ?? invitation.Email,
-            OrganizationId = invitation.OrganizationId
-        };
+        var user = CreateInvitationUser(
+            invitation, 
+            externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Name) ?? invitation.Email
+        );
 
         var createUserResult = await userManager.CreateAsync(user);
 
@@ -200,16 +175,12 @@ public sealed class InvitationService(
             return CompleteInvitationResult.Failure(string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
         }
 
-        var addToRoleResult = await userManager.AddToRoleAsync(user, invitation.Role);
+        var finalizeResult = await FinalizeInvitationAsync(invitation, user, cancellationToken);
 
-        if (!addToRoleResult.Succeeded)
+        if (finalizeResult is not null)
         {
-            return CompleteInvitationResult.Failure(string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
+            return finalizeResult;
         }
-
-        invitation.AcceptedUtc = DateTime.UtcNow;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
 
@@ -221,12 +192,7 @@ public sealed class InvitationService(
         var invitation = await dbContext.Invitations
             .SingleOrDefaultAsync(i => i.Token == token, cancellationToken);
 
-        if (invitation is null || invitation.AcceptedUtc is not null || invitation.ExpiresUtc < DateTime.UtcNow)
-        {
-            return null;
-        }
-
-        return invitation;
+        return ValidateInvitation(invitation) is null ? invitation : null;
     }
 
     private async Task SendInvitationEmailAsync(Invitation invitation, string organizationName, CancellationToken cancellationToken)
@@ -280,4 +246,56 @@ public sealed class InvitationService(
     {
         return ApplicationRoles.All.Contains(role);
     }
+
+    private static string? ValidateInvitation(Invitation? invitation)
+    {
+        if (invitation is null)
+        {
+            return "Invalid invitation token.";
+        }
+
+        if (invitation.AcceptedUtc is not null)
+        {
+            return "This invitation has already been accepted.";
+        }
+
+        if (invitation.ExpiresUtc < DateTime.UtcNow)
+        {
+            return "This invitation has expired.";
+        }
+
+        return null;
+    }
+
+    private static ApplicationUser CreateInvitationUser(Invitation invitation, string displayName)
+    {
+        return new ApplicationUser
+        {
+            UserName = invitation.Email,
+            Email = invitation.Email,
+            EmailConfirmed = true,
+            DisplayName = displayName,
+            OrganizationId = invitation.OrganizationId
+        };
+    }
+
+    private async Task<CompleteInvitationResult?> FinalizeInvitationAsync(
+        Invitation invitation,
+        ApplicationUser user,
+        CancellationToken cancellationToken
+    )
+    {
+        var addToRoleResult = await userManager.AddToRoleAsync(user, invitation.Role);
+
+        if (!addToRoleResult.Succeeded)
+        {
+            return CompleteInvitationResult.Failure(string.Join(", ", addToRoleResult.Errors.Select(e => e.Description)));
+        }
+
+        invitation.AcceptedUtc = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return null;
+    } 
 }
