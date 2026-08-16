@@ -2,18 +2,65 @@
 
 ServiceFlow is a multi-tenant field-service management platform for small and mid-sized maintenance companies.
 
-It will help office staff manage customers, service locations, work orders, and technician assignments, while technicians can track and complete their assigned jobs.
+It helps office staff manage customers, service locations, work orders, technician assignments, and operational workflows. Technicians can view and complete their assigned jobs in the field.
 
-## Planned features
+## Implemented
 
-- Email/password authentication with email confirmation and password reset
-- Google and Microsoft sign-in
+### Authentication
+
+- Email/password registration
+- Email confirmation
+- Login and logout with secure HTTP-only cookies
+- Current-user endpoint
+- Account lockout after repeated failed sign-in attempts
+- Forgot-password and password-reset flows
+- Google sign-in
+- Microsoft sign-in
+
+### Organization onboarding
+
 - Multi-tenant organization workspaces
-- Role-based access for owners, dispatchers, technicians, and managers
+- First-time organization creation during local account registration
+- First-time organization creation after Google or Microsoft sign-in
+- Owner role assignment for organization creators
+- Seeded roles: Owner, Manager, Dispatcher, and Technician
+
+### Organization invitations
+
+- Invitation creation for organization owners
+- Secure random invitation tokens
+- Invitation email delivery through SMTP
+- Invitation expiration and acceptance validation
+- Local/password-based invitation acceptance
+- Google invitation acceptance
+- Microsoft invitation acceptance
+- Invited-role assignment during account creation
+- Duplicate invitation replacement for the same organization and email address
+
+### Development infrastructure
+
+- SQL Server in Docker Compose
+- Mailpit for local email testing
+- Entity Framework Core migrations
+- Database health endpoint at `/health`
+- Swagger/OpenAPI in Development
+
+## In progress
+
+- Tenant-isolation and organization-scoped authorization foundation
 - Customer and service-location management
-- Work-order creation, assignment, scheduling, and status tracking
-- Technician job updates, notes, and attachments
-- Operational dashboard and reporting
+- Work-order lifecycle, assignment, and technician workflows
+
+## Roadmap
+
+- Work-order scheduling and calendar views
+- Technician completion notes, materials, photos, and attachments
+- Dashboard and operational reporting
+- Notifications and reminders
+- Audit logging
+- Search, filtering, and pagination
+- Automated authorization and business-rule tests
+- Demo data, deployment, CI, screenshots, and demo video
 
 ## Tech stack
 
@@ -22,13 +69,10 @@ It will help office staff manage customers, service locations, work orders, and 
 - SQL Server
 - Entity Framework Core
 - ASP.NET Core Identity
+- Google and Microsoft OAuth
 - Docker Compose
-
-## Project status
-
-Local SQL Server development infrastructure and ASP.NET Core Identity persistence are complete.
-
-Authentication endpoints and organization onboarding are next.
+- Mailpit
+- MailKit
 
 ## Local development setup
 
@@ -38,9 +82,9 @@ Authentication endpoints and organization onboarding are next.
 - Node.js and npm
 - Docker Desktop
 
-### 1. Configure and start local services
+### 1. Configure local services
 
-Create your local environment file from the included example:
+Create your local environment file:
 
 ```powershell
 Copy-Item .env.example .env
@@ -48,31 +92,30 @@ Copy-Item .env.example .env
 
 Open `.env` and replace the example password with a strong local SQL Server password.
 
-Start SQL Server:
+Start SQL Server and Mailpit:
 
 ```powershell
 docker compose up -d
 docker compose ps
 ```
 
-The SQL Server container is exposed locally at:
+SQL Server is exposed locally at:
 
 ```text
 Server: localhost,14333
 Username: sa
-Password: The value of MSSQL_SA_PASSWORD in your .env file
+Password: The value of MSSQL_SA_PASSWORD in .env
 ```
 
-You can also connect to this instance through SSMS using those details.
-
-Mailpit captures local development emails. Open its inbox at:
+Mailpit captures development email locally:
 
 ```text
 http://localhost:8025
+```
 
-### 2. Configure the API connection string
+### 2. Configure API secrets
 
-This step is required once per local machine. Replace `YOUR_PASSWORD` with the value from your `.env` file:
+Set the local SQL Server connection string once per machine. Replace `YOUR_PASSWORD` with the password in `.env`.
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,14333;Database=ServiceFlow;User Id=sa;Password=YOUR_PASSWORD;Encrypt=False;TrustServerCertificate=True" --project .\ServiceFlow.Api
@@ -80,9 +123,19 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,
 
 The connection string is stored in .NET User Secrets and is not committed to Git.
 
+To test Google or Microsoft sign-in, configure their client credentials in User Secrets:
+
+```powershell
+dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_GOOGLE_CLIENT_ID" --project .\ServiceFlow.Api
+dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_GOOGLE_CLIENT_SECRET" --project .\ServiceFlow.Api
+
+dotnet user-secrets set "Authentication:Microsoft:ClientId" "YOUR_MICROSOFT_CLIENT_ID" --project .\ServiceFlow.Api
+dotnet user-secrets set "Authentication:Microsoft:ClientSecret" "YOUR_MICROSOFT_CLIENT_SECRET" --project .\ServiceFlow.Api
+```
+
 ### 3. Create or update the local database
 
-This step is needed only when setting up a fresh local database:
+This is needed when setting up a fresh local database:
 
 ```powershell
 dotnet tool restore
@@ -98,14 +151,19 @@ dotnet run --project .\ServiceFlow.Api
 
 Swagger is available at the HTTPS address printed by the API, followed by `/swagger`.
 
-### Health check
-
-While the API and SQL Server container are running, open the API HTTPS address printed in the console followed by `/health`.
-
-For example:
+The database health endpoint is available at:
 
 ```text
 https://localhost:PORT/health
+```
+
+### 5. Run the frontend
+
+```powershell
+cd .\ServiceFlow.Web
+npm install
+npm run dev
+```
 
 ## Repository structure
 
@@ -113,6 +171,6 @@ https://localhost:PORT/health
 ServiceFlow/
 ├─ ServiceFlow.Api/       ASP.NET Core Web API
 ├─ ServiceFlow.Web/       React + TypeScript application
-├─ compose.yaml           Local SQL Server container configuration
+├─ compose.yaml           Local SQL Server and Mailpit configuration
 └─ ServiceFlow.sln
 ```
