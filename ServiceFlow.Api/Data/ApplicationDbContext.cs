@@ -9,6 +9,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<Customer> Customers => Set<Customer>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -54,5 +55,36 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
         builder.Entity<Invitation>()
             .HasIndex(i => new { i.OrganizationId, i.Email })
             .IsUnique();
+
+        builder.Entity<Customer>(entity =>
+        {
+            entity.Property(customer => customer.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(customer => customer.ContactName)
+                .HasMaxLength(200);
+
+            entity.Property(customer => customer.Email)
+                .HasMaxLength(256);
+
+            entity.Property(customer => customer.PhoneNumber)
+                .HasMaxLength(50);
+
+            entity.Property(customer => customer.Notes)
+                .HasMaxLength(2000);
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(customer => customer.OrganizationId)
+                .IsRequired();
+
+            entity.HasIndex(customer => new
+            {
+                customer.OrganizationId,
+                customer.IsActive,
+                customer.Name
+            });
+        });
     }
 }
