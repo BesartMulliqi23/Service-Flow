@@ -43,9 +43,14 @@ public sealed class InvitationService(
 
         var existingUser = await userManager.FindByEmailAsync(email);
 
-        if (existingUser is not null && existingUser.OrganizationId == user.OrganizationId)
+        if (existingUser is not null)
         {
-            return InvitationResult.Failure("This user already belongs to your organization.");
+            if (existingUser.OrganizationId == user.OrganizationId)
+            {
+                return InvitationResult.Failure("This user already belongs to your organization.");
+            }
+
+            return InvitationResult.Failure("This email address is already associated with another organization.");
         }
 
         var invitation = await dbContext.Invitations

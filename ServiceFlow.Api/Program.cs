@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
@@ -44,7 +45,38 @@ builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 builder.Services.AddScoped<IOrganizationOnboardingService, OrganizationOnboardingService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        OrganizationPolicies.ManageMembers,
+        policy => policy.RequireRole(ApplicationRoles.Owner)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ManageCustomers,
+        policy => policy.RequireRole(OrganizationPolicies.OperationsManagers)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ManageWorkOrders,
+        policy => policy.RequireRole(OrganizationPolicies.OperationsManagers)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ViewReports,
+        policy => policy.RequireRole(ApplicationRoles.Owner, ApplicationRoles.Manager)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ViewWorkOrders,
+        policy => policy.RequireRole(OrganizationPolicies.AllOrganizationRoles)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ExecuteAssignedWork,
+        policy => policy.RequireRole(ApplicationRoles.Technician)
+    );
+});
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -62,6 +94,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, ApplicationUserClaimsPrincipalFactory>();
+
+builder.Services.AddScoped<ICurrentOrganization, CurrentOrganization>();
 
 builder.Services.AddAuthentication()
     .AddGoogle(options =>

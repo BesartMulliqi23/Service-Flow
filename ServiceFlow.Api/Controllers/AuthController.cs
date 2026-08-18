@@ -332,6 +332,7 @@ public sealed class AuthController(
 
         return Ok(new CurrentUserResponse(
             user.Id,
+            user.OrganizationId,
             user.DisplayName,
             user.Email!,
             user.EmailConfirmed,
