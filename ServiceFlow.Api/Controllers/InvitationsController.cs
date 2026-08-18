@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.Invitations;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Invitations;
@@ -10,7 +11,7 @@ namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = ApplicationRoles.Owner)]
+[Authorize(Policy = OrganizationPolicies.ManageMembers)]
 public sealed class InvitationsController(
     IInvitationService invitationService,
     SignInManager<ApplicationUser> signInManager
