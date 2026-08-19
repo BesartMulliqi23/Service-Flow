@@ -10,6 +10,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<ServiceLocation> ServiceLocations => Set<ServiceLocation>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -84,6 +85,62 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 customer.OrganizationId,
                 customer.IsActive,
                 customer.Name
+            });
+
+            entity.HasAlternateKey(customer => new
+            {
+                customer.Id,
+                customer.OrganizationId
+            });
+        });
+
+        builder.Entity<ServiceLocation>(entity =>
+        {
+            entity.Property(location => location.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(location => location.AddressLine1)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(location => location.AddressLine2)
+                .HasMaxLength(200);
+
+            entity.Property(location => location.City)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(location => location.PostalCode)
+                .HasMaxLength(20);
+
+            entity.Property(location => location.Country)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(location => location.AccessInstructions)
+                .HasMaxLength(1000);
+
+            entity.HasOne(location => location.Customer)
+                .WithMany()
+                .HasForeignKey(location => new
+                {
+                    location.CustomerId,
+                    location.OrganizationId
+                })
+                .HasPrincipalKey(customer => new
+                {
+                    customer.Id,
+                    customer.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(location => new
+            {
+                location.OrganizationId,
+                location.CustomerId,
+                location.IsActive,
+                location.Name
             });
         });
     }
