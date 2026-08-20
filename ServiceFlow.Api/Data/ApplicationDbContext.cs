@@ -11,6 +11,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<ServiceLocation> ServiceLocations => Set<ServiceLocation>();
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -141,6 +142,54 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 location.CustomerId,
                 location.IsActive,
                 location.Name
+            });
+
+            entity.HasAlternateKey(location => new
+            {
+                location.Id,
+                location.OrganizationId
+            });
+        });
+
+        builder.Entity<WorkOrder>(entity =>
+        {
+            entity.Property(workOrder => workOrder.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(workOrder => workOrder.Description)
+                .HasMaxLength(4000)
+                .IsRequired();
+
+            entity.Property(workOrder => workOrder.Priority)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(workOrder => workOrder.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.HasOne(workOrder => workOrder.ServiceLocation)
+                .WithMany()
+                .HasForeignKey(workOrder => new
+                {
+                    workOrder.ServiceLocationId,
+                    workOrder.OrganizationId
+                })
+                .HasPrincipalKey(serviceLocation => new
+                {
+                    serviceLocation.Id,
+                    serviceLocation.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(workOrder => new
+            {
+                workOrder.OrganizationId,
+                workOrder.Status,
+                workOrder.ScheduledStartUtc
             });
         });
     }
