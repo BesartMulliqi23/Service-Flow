@@ -8,6 +8,7 @@ using ServiceFlow.Api.Services.Customers;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
+using ServiceFlow.Api.Services.ServiceLocations;
 using ServiceFlow.Api.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +47,7 @@ builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 builder.Services.AddScoped<IOrganizationOnboardingService, OrganizationOnboardingService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IServiceLocationService, ServiceLocationService>();
 
 builder.Services.AddAuthorization(options =>
 {
