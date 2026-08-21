@@ -159,6 +159,69 @@ public sealed class WorkOrderService(
         return new UpdateWorkOrderResult(UpdateWorkOrderStatus.Success, ToResponse(workOrder, workOrder.ServiceLocation));
     }
 
+    public async Task<ScheduleWorkOrderResult> ScheduleAsync(Guid workOrderId, ScheduleWorkOrderRequest request, CancellationToken cancellationToken)
+    {
+        if (request.ScheduledStartUtc.Kind != DateTimeKind.Utc ||
+            request.ScheduledEndUtc.Kind != DateTimeKind.Utc ||
+            request.ScheduledStartUtc >= request.ScheduledEndUtc)
+        {
+            return new ScheduleWorkOrderResult(ScheduleWorkOrderStatus.InvalidSchedule, null);
+        }
+
+        var organizationId = currentOrganization.OrganizationId;
+
+        var workOrder = await dbContext.WorkOrders
+            .Include(workOrder => workOrder.ServiceLocation)
+            .ThenInclude(serviceLocation => serviceLocation.Customer)
+            .SingleOrDefaultAsync(
+                workOrder =>
+                    workOrder.Id == workOrderId &&
+                    workOrder.OrganizationId == organizationId,
+                cancellationToken
+            );
+
+        if (workOrder is null)
+        {
+            return new ScheduleWorkOrderResult(ScheduleWorkOrderStatus.NotFound, null);
+        }
+
+        if (!workOrder.ServiceLocation.IsActive)
+        {
+            return new ScheduleWorkOrderResult(
+                ScheduleWorkOrderStatus.ServiceLocationInactive,
+                ToResponse(workOrder, workOrder.ServiceLocation)
+            );
+        }
+
+        if (!workOrder.ServiceLocation.Customer.IsActive)
+        {
+            return new ScheduleWorkOrderResult(
+                ScheduleWorkOrderStatus.CustomerInactive, 
+                ToResponse(workOrder, workOrder.ServiceLocation)
+            );
+        }
+
+        if (workOrder.Status != WorkOrderStatus.Draft && workOrder.Status != WorkOrderStatus.Scheduled)
+        {
+            return new ScheduleWorkOrderResult(
+                ScheduleWorkOrderStatus.WorkOrderNotSchedulable,
+                ToResponse(workOrder, workOrder.ServiceLocation)
+            );
+        }
+
+        workOrder.ScheduledStartUtc = request.ScheduledStartUtc;
+        workOrder.ScheduledEndUtc = request.ScheduledEndUtc;
+        workOrder.Status = WorkOrderStatus.Scheduled;
+        workOrder.UpdatedUtc = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        
+        return new ScheduleWorkOrderResult(
+            ScheduleWorkOrderStatus.Success,
+            ToResponse(workOrder, workOrder.ServiceLocation)
+        );
+    }
+
     private static WorkOrderResponse ToResponse(WorkOrder workOrder, ServiceLocation serviceLocation)
     {
         return new WorkOrderResponse(

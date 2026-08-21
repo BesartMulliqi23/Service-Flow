@@ -141,6 +141,79 @@ public sealed class WorkOrdersController(
         throw new InvalidOperationException($"Unexpected result status: {result.Status}");
     }
 
+    [HttpPost("{workOrderId:guid}/schedule")]
+    [ProducesResponseType(typeof(WorkOrderResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<WorkOrderResponse>> Schedule(
+        Guid workOrderId,
+        ScheduleWorkOrderRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var errors = ValidateScheduleInput(request.ScheduledStartUtc, request.ScheduledEndUtc);
+
+        if (errors.Count > 0)
+        {
+            return ValidationProblem(new ValidationProblemDetails(errors));
+        }
+
+        var result = await workOrderService.ScheduleAsync(workOrderId, request, cancellationToken);
+
+        if (result.Status == ScheduleWorkOrderStatus.Success)
+        {
+            return Ok(result.WorkOrder);
+        }
+
+        if (result.Status == ScheduleWorkOrderStatus.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (result.Status == ScheduleWorkOrderStatus.InvalidSchedule)
+        {
+            return ValidationProblem(new ValidationProblemDetails(
+                new Dictionary<string, string[]>
+                {
+                    ["scheduledEndUtc"] = ["Scheduled end time must be later than scheduled start time."]
+                }
+            ));
+        }
+
+        if (result.Status == ScheduleWorkOrderStatus.WorkOrderNotSchedulable)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Work Order cannot be scheduled.",
+                Detail = "Only Draft or Scheduled Work Orders can be scheduled.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        if (result.Status == ScheduleWorkOrderStatus.ServiceLocationInactive)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Service location is inactive.",
+                Detail = "A Work Order cannot be scheduled for an inactive Service Location.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        if (result.Status == ScheduleWorkOrderStatus.CustomerInactive)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Customer is inactive.",
+                Detail = "A Work Order cannot be scheduled for an inactive Customer.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        throw new InvalidOperationException($"Unexpected result status: ${result.Status}");
+    }
+
     private static Dictionary<string, string[]> ValidateWorkOrderInput(
         string? title,
         string? description,
@@ -172,6 +245,31 @@ public sealed class WorkOrdersController(
             errors["priority"] = ["A valid priority is required."];
         }
 
+        return errors;
+    }
+
+    private static Dictionary<string, string[]> ValidateScheduleInput(
+        DateTime scheduledStartUtc,
+        DateTime scheduledEndUtc
+    )
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (scheduledStartUtc.Kind != DateTimeKind.Utc)
+        {
+            errors["scheduledStartUtc"] = ["Scheduled start time must be supplied in UTC."];
+        }
+
+        if (scheduledEndUtc.Kind != DateTimeKind.Utc)
+        {
+            errors["scheduledEndUtc"] = ["Scheduled end time must be supplied in UTC."];
+        }
+
+        if (errors.Count == 0 && scheduledStartUtc >= scheduledEndUtc)
+        {
+            errors["scheduledEndUtc"] = ["Scheduled end time must be later than scheduled start time."];
+        }
+        
         return errors;
     }
 }

@@ -20,4 +20,10 @@ public interface IWorkOrderService
         UpdateWorkOrderRequest request,
         CancellationToken cancellationToken
     );
+
+    Task<ScheduleWorkOrderResult> ScheduleAsync(
+        Guid workOrderId,
+        ScheduleWorkOrderRequest request,
+        CancellationToken cancellationToken
+    );
 }
