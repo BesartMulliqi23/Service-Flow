@@ -1,5 +1,7 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
@@ -9,6 +11,7 @@ using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Services.ServiceLocations;
+using ServiceFlow.Api.Services.WorkOrders;
 using ServiceFlow.Api.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +27,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 builder.Services.Configure<SmtpOptions>(
     builder.Configuration.GetSection(SmtpOptions.SectionName)
@@ -48,6 +55,7 @@ builder.Services.AddScoped<IOrganizationOnboardingService, OrganizationOnboardin
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IServiceLocationService, ServiceLocationService>();
+builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 
 builder.Services.AddAuthorization(options =>
 {
