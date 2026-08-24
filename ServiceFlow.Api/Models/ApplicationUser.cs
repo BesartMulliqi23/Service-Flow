@@ -8,4 +8,6 @@ public sealed class ApplicationUser : IdentityUser
 
     public Guid OrganizationId { get; set; }
     public Organization Organization { get; set; } = null!;
+
+    public ICollection<WorkOrderAssignment> WorkOrderAssignments { get; } = [];
 }

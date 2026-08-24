@@ -12,6 +12,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<ServiceLocation> ServiceLocations => Set<ServiceLocation>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
+    public DbSet<WorkOrderAssignment> WorkOrderAssignments => Set<WorkOrderAssignment>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -27,6 +28,13 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             .WithMany(o => o.Users)
             .HasForeignKey(u => u.OrganizationId)
             .IsRequired();
+
+        builder.Entity<ApplicationUser>()
+            .HasAlternateKey(user => new
+            {
+                user.Id,
+                user.OrganizationId
+            });
 
         builder.Entity<Organization>()
             .Property(o => o.Name)
@@ -190,6 +198,55 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 workOrder.OrganizationId,
                 workOrder.Status,
                 workOrder.ScheduledStartUtc
+            });
+
+            entity.HasAlternateKey(workOrder => new
+            {
+                workOrder.Id,
+                workOrder.OrganizationId
+            });
+        });
+
+        builder.Entity<WorkOrderAssignment>(entity =>
+        {
+            entity.HasKey(assignment => new
+            {
+                assignment.WorkOrderId,
+                assignment.TechnicianId
+            });
+
+            entity.HasOne(assignment => assignment.WorkOrder)
+                .WithMany(workOrder => workOrder.Assignments)
+                .HasForeignKey(assignment => new
+                {
+                    assignment.WorkOrderId,
+                    assignment.OrganizationId
+                })
+                .HasPrincipalKey(workOrder => new
+                {
+                    workOrder.Id,
+                    workOrder.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(assignment => assignment.Technician)
+                .WithMany(user => user.WorkOrderAssignments)
+                .HasForeignKey(assignment => new
+                {
+                    assignment.TechnicianId,
+                    assignment.OrganizationId
+                })
+                .HasPrincipalKey(user => new
+                {
+                    user.Id,
+                    user.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(assignment => new
+            {
+                assignment.OrganizationId,
+                assignment.TechnicianId
             });
         });
     }
