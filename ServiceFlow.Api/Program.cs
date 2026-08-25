@@ -11,6 +11,7 @@ using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Services.ServiceLocations;
+using ServiceFlow.Api.Services.Technicians;
 using ServiceFlow.Api.Services.WorkOrders;
 using ServiceFlow.Api.Settings;
 
@@ -56,6 +57,7 @@ builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IServiceLocationService, ServiceLocationService>();
 builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
+builder.Services.AddScoped<ITechnicianDirectoryService, TechnicianDirectoryService>();
 
 builder.Services.AddAuthorization(options =>
 {
