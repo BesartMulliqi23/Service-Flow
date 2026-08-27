@@ -10,4 +10,6 @@ public sealed class ApplicationUser : IdentityUser
     public Organization Organization { get; set; } = null!;
 
     public ICollection<WorkOrderAssignment> WorkOrderAssignments { get; } = [];
+
+    public ICollection<WorkOrderStatusChange> WorkOrderStatusChanges { get; } = [];
 }

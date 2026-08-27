@@ -13,6 +13,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<ServiceLocation> ServiceLocations => Set<ServiceLocation>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
     public DbSet<WorkOrderAssignment> WorkOrderAssignments => Set<WorkOrderAssignment>();
+    public DbSet<WorkOrderStatusChange> WorkOrderStatusChanges => Set<WorkOrderStatusChange>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -247,6 +248,57 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             {
                 assignment.OrganizationId,
                 assignment.TechnicianId
+            });
+        });
+
+        builder.Entity<WorkOrderStatusChange>(entity =>
+        {
+            entity.Property(statusChange => statusChange.PreviousStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(statusChange => statusChange.NewStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(statusChange => statusChange.Note)
+                .HasMaxLength(4000);
+
+            entity.HasOne(statusChange => statusChange.WorkOrder)
+                .WithMany(workOrder => workOrder.StatusHistory)
+                .HasForeignKey(statusChange => new
+                {
+                    statusChange.WorkOrderId,
+                    statusChange.OrganizationId
+                })
+                .HasPrincipalKey(workOrder => new
+                {
+                    workOrder.Id,
+                    workOrder.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(statusChange => statusChange.ChangedByUser)
+                .WithMany(user => user.WorkOrderStatusChanges)
+                .HasForeignKey(statusChange => new
+                {
+                    statusChange.ChangedByUserId,
+                    statusChange.OrganizationId
+                })
+                .HasPrincipalKey(user => new
+                {
+                    user.Id,
+                    user.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(statusChange => new
+            {
+                statusChange.OrganizationId,
+                statusChange.WorkOrderId,
+                statusChange.ChangedUtc
             });
         });
     }
