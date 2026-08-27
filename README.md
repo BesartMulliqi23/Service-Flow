@@ -47,13 +47,25 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ## In progress
 
-- Tenant-isolation and organization-scoped authorization foundation
-- Customer and service-location management
-- Work-order lifecycle, assignment, and technician workflows
+### Tenant isolation and authorization
+ 
+- Organization-scoped data access through the current authenticated organization
+- Role-based policies for Owners, Managers, Dispatchers, and Technicians
+- Tenant-aware database relationships for Customers, Service Locations, Work Orders, and Work Order Assignments
+
+### Core dispatch workflow
+
+- Customer creation, updates, deactivation, and tenant-scoped retrieval
+- Service Location creation, updates, deactivation, filtering, and tenant-scoped retrieval
+- Work Order creation, Draft-only updates, retrieval, and filtering
+- Work Order scheduling and rescheduling with UTC time validation
+- Tenant-scoped Technician directory for dispatchers
+- Multi-technician Work Order assignments
+- Assignment listing and removal for Scheduled Work Orders
 
 ## Roadmap
 
-- Work-order scheduling and calendar views
+- Calendar views and scheduling-conflict detection
 - Technician completion notes, materials, photos, and attachments
 - Dashboard and operational reporting
 - Notifications and reminders
