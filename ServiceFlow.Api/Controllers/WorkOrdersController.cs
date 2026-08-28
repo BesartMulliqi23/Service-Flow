@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Scheduling;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.WorkOrders;
@@ -191,6 +192,25 @@ public sealed class WorkOrdersController(
             });
         }
 
+        if (result.Status == ScheduleWorkOrderStatus.TechnicianScheduleConflict)
+        {
+            var problem = new ProblemDetails
+            {
+                Title = "Technician has a scheduling conflict.",
+                Detail = "Rescheduling would overlap an assigned Technician's active Work Order.",
+                Status = StatusCodes.Status409Conflict
+            };
+
+            problem.Extensions["conflict"] = new TechnicianScheduleConflictDetails(
+                result.Conflict!.WorkOrderId,
+                result.Conflict.WorkOrderTitle,
+                result.Conflict.ScheduledStartUtc,
+                result.Conflict.ScheduledEndUtc
+            );
+
+            return Conflict(problem);
+        }
+
         if (result.Status == ScheduleWorkOrderStatus.ServiceLocationInactive)
         {
             return Conflict(new ProblemDetails
@@ -211,7 +231,7 @@ public sealed class WorkOrdersController(
             });
         }
 
-        throw new InvalidOperationException($"Unexpected result status: ${result.Status}");
+        throw new InvalidOperationException($"Unexpected result status: {result.Status}");
     }
 
     private static Dictionary<string, string[]> ValidateWorkOrderInput(
