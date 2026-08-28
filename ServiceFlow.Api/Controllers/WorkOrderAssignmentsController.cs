@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Scheduling;
 using ServiceFlow.Api.Contracts.WorkOrderAssignments;
 using ServiceFlow.Api.Services.WorkOrderAssignments;
 
@@ -92,6 +93,25 @@ public sealed class WorkOrderAssignmentsController(
                     Status = StatusCodes.Status409Conflict
                 }
             );
+        }
+
+        if (result.Status == WorkOrderAssignmentStatus.ScheduleConflict)
+        {
+            var problem = new ProblemDetails
+            {
+                Title = "Technician has a scheduling conflict.",
+                Detail = "The Technician is already assigned to an overlapping Work Order.",
+                Status = StatusCodes.Status409Conflict
+            };
+
+            problem.Extensions["conflict"] = new TechnicianScheduleConflictDetails(
+                result.Conflict!.WorkOrderId,
+                result.Conflict.WorkOrderTitle,
+                result.Conflict.ScheduledStartUtc,
+                result.Conflict.ScheduledEndUtc
+            );
+
+            return Conflict(problem);
         }
 
         if (result.Status == WorkOrderAssignmentStatus.WorkOrderNotAssignable)

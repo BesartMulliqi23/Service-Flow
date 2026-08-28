@@ -4,13 +4,15 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrderAssignments;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Scheduling;
 
 namespace ServiceFlow.Api.Services.WorkOrderAssignments;
 
 public sealed class WorkOrderAssignmentService(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
-    ICurrentOrganization currentOrganization
+    ICurrentOrganization currentOrganization,
+    ITechnicianScheduleConflictService technicianScheduleConflictService
 ) : IWorkOrderAssignmentService
 {
     public async Task<GetWorkOrderAssignmentsResult> GetAllAsync(Guid workOrderId, CancellationToken cancellationToken)
@@ -94,7 +96,9 @@ public sealed class WorkOrderAssignmentService(
             );
         }
 
-        if (workOrder.Status != WorkOrderStatus.Scheduled)
+        if (workOrder.Status != WorkOrderStatus.Scheduled ||
+            !workOrder.ScheduledStartUtc.HasValue ||
+            !workOrder.ScheduledEndUtc.HasValue)
         {
             return new AssignWorkOrderTechnicianResult(
                 WorkOrderAssignmentStatus.WorkOrderNotAssignable,
@@ -137,6 +141,23 @@ public sealed class WorkOrderAssignmentService(
             return new AssignWorkOrderTechnicianResult(
                 WorkOrderAssignmentStatus.AlreadyAssigned,
                 null
+            );
+        }
+
+        var conflict = await technicianScheduleConflictService.FindFirstAsync(
+            technician.Id,
+            workOrder.Id,
+            workOrder.ScheduledStartUtc.Value,
+            workOrder.ScheduledEndUtc.Value,
+            cancellationToken
+        );
+
+        if (conflict is not null)
+        {
+            return new AssignWorkOrderTechnicianResult(
+                WorkOrderAssignmentStatus.ScheduleConflict,
+                null,
+                conflict
             );
         }
 
