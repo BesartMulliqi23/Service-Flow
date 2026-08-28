@@ -15,6 +15,8 @@ public sealed record WorkOrderResponse(
     DateTime? DueUtc,
     DateTime? ScheduledStartUtc,
     DateTime? ScheduledEndUtc,
+    DateTime? StartedUtc,
+    DateTime? CompletedUtc,
     DateTime CreatedUtc,
     DateTime? UpdatedUtc
 );

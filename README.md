@@ -62,11 +62,14 @@ It helps office staff manage customers, service locations, work orders, technici
 - Tenant-scoped Technician directory for dispatchers
 - Multi-technician Work Order assignments
 - Assignment listing and removal for Scheduled Work Orders
+- Technician-only access to assigned Work Orders and job-site details
+- Technician start and completion workflow
+- Status-change history with acting Technician, timestamp, and completion note
 
 ## Roadmap
 
 - Calendar views and scheduling-conflict detection
-- Technician completion notes, materials, photos, and attachments
+- Materials, photos, attachments, and general Technician notes
 - Dashboard and operational reporting
 - Notifications and reminders
 - Audit logging
