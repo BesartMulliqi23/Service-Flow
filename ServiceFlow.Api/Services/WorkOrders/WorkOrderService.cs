@@ -98,6 +98,8 @@ public sealed class WorkOrderService(
                 workOrder.DueUtc,
                 workOrder.ScheduledStartUtc,
                 workOrder.ScheduledEndUtc,
+                workOrder.StartedUtc,
+                workOrder.CompletedUtc,
                 workOrder.CreatedUtc,
                 workOrder.UpdatedUtc
             ))
@@ -237,6 +239,8 @@ public sealed class WorkOrderService(
             workOrder.DueUtc,
             workOrder.ScheduledStartUtc,
             workOrder.ScheduledEndUtc,
+            workOrder.StartedUtc,
+            workOrder.CompletedUtc,
             workOrder.CreatedUtc,
             workOrder.UpdatedUtc
         );

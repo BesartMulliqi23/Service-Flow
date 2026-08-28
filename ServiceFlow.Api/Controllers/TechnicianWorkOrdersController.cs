@@ -35,4 +35,94 @@ public sealed class TechnicianWorkOrdersController(
 
         return workOrder == null ? NotFound() : Ok(workOrder);
     }
+
+    [HttpPost("{id:guid}/start")]
+    [ProducesResponseType(typeof(TechnicianWorkOrderResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<TechnicianWorkOrderResponse>> Start(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await technicianWorkOrderService.StartAsync(id, cancellationToken);
+
+        if (result.Status == TechnicianWorkOrderExecutionStatus.Success)
+        {
+            return Ok(result.WorkOrder);
+        }
+
+        if (result.Status == TechnicianWorkOrderExecutionStatus.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (result.Status == TechnicianWorkOrderExecutionStatus.InvalidTransition)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Work order cannot be started.",
+                Detail = "Only Scheduled Work Orders can be started.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        throw new InvalidOperationException($"Unexpected result status: {result.Status}");
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    [ProducesResponseType(typeof(TechnicianWorkOrderResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<TechnicianWorkOrderResponse>> Complete(
+        Guid id,
+        CompleteWorkOrderRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var errors = ValidateCompletionInput(request.CompletionNote);
+
+        if (errors.Count > 0)
+        {
+            return ValidationProblem(new ValidationProblemDetails(errors));
+        }
+
+        var result = await technicianWorkOrderService.CompleteAsync(id, request, cancellationToken);
+
+        if (result.Status == TechnicianWorkOrderExecutionStatus.Success)
+        {
+            return Ok(result.WorkOrder);
+        }
+
+        if (result.Status == TechnicianWorkOrderExecutionStatus.NotFound)
+        {
+            return NotFound();
+        }
+
+        if (result.Status == TechnicianWorkOrderExecutionStatus.InvalidTransition)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Work Order cannot be completed.",
+                Detail = "Only In Progress Work Orders can be completed.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        throw new InvalidOperationException($"Unexpected result status: {result.Status}");
+    }
+
+    private static Dictionary<string, string[]> ValidateCompletionInput(string? completionNote)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(completionNote))
+        {
+            errors["completionNote"] = ["A completion note is required."];
+        }
+        else if (completionNote.Trim().Length > 4000)
+        {
+            errors["completionNote"] = ["Completion note cannot exceed 4000 characters."];
+        }
+
+        return errors;
+    }
 }

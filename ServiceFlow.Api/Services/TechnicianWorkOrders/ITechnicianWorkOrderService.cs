@@ -14,4 +14,15 @@ public interface ITechnicianWorkOrderService
         Guid workOrderId,
         CancellationToken cancellationToken
     );
+
+    Task<TechnicianWorkOrderExecutionResult> StartAsync(
+        Guid workOrderId,
+        CancellationToken cancellationToken
+    );
+
+    Task<TechnicianWorkOrderExecutionResult> CompleteAsync(
+        Guid workOrderId,
+        CompleteWorkOrderRequest request,
+        CancellationToken cancellationToken
+    );
 }
