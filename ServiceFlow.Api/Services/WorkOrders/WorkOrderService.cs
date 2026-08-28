@@ -3,12 +3,14 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Scheduling;
 
 namespace ServiceFlow.Api.Services.WorkOrders;
 
 public sealed class WorkOrderService(
     ApplicationDbContext dbContext,
-    ICurrentOrganization currentOrganization
+    ICurrentOrganization currentOrganization,
+    ITechnicianScheduleConflictService technicianScheduleConflictService
 ) : IWorkOrderService
 {
     public async Task<CreateWorkOrderResult> CreateAsync(CreateWorkOrderRequest request, CancellationToken cancellationToken)
@@ -209,6 +211,36 @@ public sealed class WorkOrderService(
                 ScheduleWorkOrderStatus.WorkOrderNotSchedulable,
                 ToResponse(workOrder, workOrder.ServiceLocation)
             );
+        }
+
+        var assignedTechnicianIds = await dbContext.WorkOrderAssignments
+            .AsNoTracking()
+            .Where(
+                assignment =>
+                    assignment.OrganizationId == organizationId &&
+                    assignment.WorkOrderId == workOrderId
+            )
+            .Select(assignment => assignment.TechnicianId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var technicianId in assignedTechnicianIds)
+        {
+            var conflict = await technicianScheduleConflictService.FindFirstAsync(
+                technicianId,
+                workOrder.Id,
+                request.ScheduledStartUtc,
+                request.ScheduledEndUtc,
+                cancellationToken
+            );
+
+            if (conflict is not null)
+            {
+                return new ScheduleWorkOrderResult(
+                    ScheduleWorkOrderStatus.TechnicianScheduleConflict,
+                    ToResponse(workOrder, workOrder.ServiceLocation),
+                    conflict
+                );
+            }
         }
 
         workOrder.ScheduledStartUtc = request.ScheduledStartUtc;

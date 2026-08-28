@@ -8,6 +8,7 @@ public enum WorkOrderAssignmentStatus
     TechnicianNotFound,
     TechnicianNotEligible,
     AlreadyAssigned,
+    ScheduleConflict,
     WorkOrderNotAssignable,
     ServiceLocationInactive,
     CustomerInactive

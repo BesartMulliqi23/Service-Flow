@@ -6,6 +6,7 @@ public enum ScheduleWorkOrderStatus
     NotFound,
     InvalidSchedule,
     WorkOrderNotSchedulable,
+    TechnicianScheduleConflict,
     ServiceLocationInactive,
     CustomerInactive
 }

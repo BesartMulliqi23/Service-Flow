@@ -10,6 +10,7 @@ using ServiceFlow.Api.Services.Customers;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
+using ServiceFlow.Api.Services.Scheduling;
 using ServiceFlow.Api.Services.ServiceLocations;
 using ServiceFlow.Api.Services.Technicians;
 using ServiceFlow.Api.Services.TechnicianWorkOrders;
@@ -62,6 +63,7 @@ builder.Services.AddScoped<IWorkOrderService, WorkOrderService>();
 builder.Services.AddScoped<ITechnicianDirectoryService, TechnicianDirectoryService>();
 builder.Services.AddScoped<IWorkOrderAssignmentService, WorkOrderAssignmentService>();
 builder.Services.AddScoped<ITechnicianWorkOrderService, TechnicianWorkOrderService>();
+builder.Services.AddScoped<ITechnicianScheduleConflictService, TechnicianScheduleConflictService>();
 
 builder.Services.AddAuthorization(options =>
 {
