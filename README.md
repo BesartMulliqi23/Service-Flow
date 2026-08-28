@@ -65,10 +65,11 @@ It helps office staff manage customers, service locations, work orders, technici
 - Technician-only access to assigned Work Orders and job-site details
 - Technician start and completion workflow
 - Status-change history with acting Technician, timestamp, and completion note
+- Technician scheduling-conflict detection during assignment and rescheduling
 
 ## Roadmap
 
-- Calendar views and scheduling-conflict detection
+- Calendar views
 - Materials, photos, attachments, and general Technician notes
 - Dashboard and operational reporting
 - Notifications and reminders
