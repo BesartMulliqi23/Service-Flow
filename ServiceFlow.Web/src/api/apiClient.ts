@@ -68,7 +68,7 @@ async function createApiError(response: Response) : Promise<ApiError> {
 
     try {
         problem = JSON.parse(responseText) as ApiProblem;
-    } catch (error) {
+    } catch {
         problem = undefined;
     }
 
