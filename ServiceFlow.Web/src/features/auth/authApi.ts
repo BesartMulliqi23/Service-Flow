@@ -31,3 +31,28 @@ export function logoutUser() {
         method: 'POST'
     });
 }
+
+export type RegisterInput = {
+    email: string,
+    displayName: string,
+    organizationName: string,
+    password: string,
+    confirmPassword: string
+}
+
+type ConfirmationResponse = {
+    message: string
+}
+
+export function registerUser(input: RegisterInput) {
+    return apiRequest<void>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(input)
+    });
+}
+
+export function confirmEmail(userId: string, token: string) {
+    const query = new URLSearchParams({ userId, token });
+
+    return apiRequest<ConfirmationResponse>(`/auth/confirm-email?${query.toString()}`);
+}

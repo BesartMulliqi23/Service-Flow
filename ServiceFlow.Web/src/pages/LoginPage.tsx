@@ -1,5 +1,5 @@
 import { Alert, Box, Button, Checkbox, CircularProgress, Container, FormControlLabel, Paper, Stack, TextField, Typography } from "@mui/material";
-import { Navigate, useLocation, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from '../features/auth/AuthContext';
 import { useState, type SubmitEvent } from 'react';
 import { FullPageLoader } from '../components/FullPageLoader';
@@ -137,9 +137,18 @@ export function LoginPage() {
                             Sign in
                         </Button>
 
-                        <Typography align='center' color='text.secondary' variant='body2'>
-                            Registration and password recovery screens will be added next.
-                        </Typography>
+                        <Stack
+                            spacing={1}
+                            sx={{ alignItems: 'center' }}
+                        >
+                            <Button component={Link} to='/register' size="small">
+                                Create an organization workspace
+                            </Button>
+
+                            <Button component={Link} to='/forgot-password' size="small">
+                                Forgot your password?
+                            </Button>
+                        </Stack>
                     </Stack>
                 </Paper>
             </Container>

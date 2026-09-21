@@ -541,15 +541,13 @@ public sealed class AuthController(
 
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-        var confirmationUrl = Url.ActionLink(
-            action: nameof(ConfirmEmail),
-            controller: "Auth",
-            values: new
+        var confirmationUrl = QueryHelpers.AddQueryString(
+            $"{_frontendOptions.BaseUrl.TrimEnd('/')}/confirm-email",
+            new Dictionary<string, string?>
             {
-                userId = user.Id,
-                token = encodedToken
-            },
-            protocol: Request.Scheme
+                ["userId"] = user.Id,
+                ["token"] = encodedToken
+            }
         );
 
         if (confirmationUrl is null)
