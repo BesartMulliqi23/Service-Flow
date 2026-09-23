@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router";
 import { registerUser } from "../features/auth/authApi";
 import { ApiError } from "../api/apiClient";
 import { Alert, Box, Button, Container, Paper, Stack, TextField, Typography } from "@mui/material";
+import { PasswordField } from "../components/PasswordField";
+import { PasswordRequirements } from "../components/PasswordRequirements";
+import { PersonAddRounded } from "@mui/icons-material";
 
 export function RegisterPage() {
     const navigate = useNavigate();
@@ -94,32 +97,30 @@ export function RegisterPage() {
                             autoComplete="email"
                         />
 
-                        <TextField
+                        <PasswordField
                             label="Password"
-                            type="password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
-                            required
-                            fullWidth
                             autoComplete="new-password"
                         />
 
-                        <TextField
+                        <PasswordRequirements />
+
+                        <PasswordField
                             label="Confirm password"
-                            type="password"
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
-                            required
-                            fullWidth
                             autoComplete="new-password"
                         />
 
                         <Button 
+                            loading={isSubmitting}
+                            loadingPosition="start"
+                            startIcon={<PersonAddRounded />}
                             type="submit"
                             variant="contained"
                             size="large"
                             fullWidth
-                            disabled={isSubmitting}
                         >
                             Create workspace
                         </Button>

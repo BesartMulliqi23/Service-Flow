@@ -7,6 +7,8 @@ import { DashboardPage } from "./pages/DashboardPage"
 import { RegisterPage } from "./pages/RegisterPage"
 import { RegistrationPendingPage } from "./pages/RegistrationPendingPage"
 import { ConfirmEmailPage } from "./pages/ConfirmEmailPage"
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage"
+import { ResetPasswordPage } from "./pages/ResetPasswordPage"
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/registration-pending" element={<RegistrationPendingPage />} />
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppLayout />}>

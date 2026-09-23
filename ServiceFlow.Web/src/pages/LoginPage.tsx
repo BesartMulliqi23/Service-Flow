@@ -1,10 +1,11 @@
-import { Alert, Box, Button, Checkbox, CircularProgress, Container, FormControlLabel, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Container, FormControlLabel, Paper, Stack, TextField, Typography } from "@mui/material";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from '../features/auth/AuthContext';
 import { useState, type SubmitEvent } from 'react';
 import { FullPageLoader } from '../components/FullPageLoader';
 import { ApiError } from '../api/apiClient';
 import { ArrowForwardRounded, LockOutlined } from "@mui/icons-material";
+import { PasswordField } from "../components/PasswordField";
 
 type NavigationState = {
     from?: string
@@ -70,7 +71,7 @@ export function LoginPage() {
                     onSubmit={handleSubmit}
                     sx={{
                         p: { xs: 3, sm: 5 },
-                        border: '1 px solid',
+                        border: '1px solid',
                         borderColor: 'divider'
                     }}
                 >
@@ -99,15 +100,12 @@ export function LoginPage() {
                             value={email}
                         />
 
-                        <TextField 
-                            autoComplete='current-password'
-                            fullWidth
-                            label='Password'
-                            name='password'
-                            onChange={e => setPassword(e.target.value)}
-                            required
-                            type='password'
+                        <PasswordField 
+                            autoComplete="current-password"
+                            label="Password"
+                            name="Password"
                             value={password}
+                            onChange={e => setPassword(e.target.value)}
                         />
 
                         <FormControlLabel 
@@ -121,14 +119,9 @@ export function LoginPage() {
                         />
 
                         <Button
-                            disabled={isSubmitting}
-                            endIcon={
-                                isSubmitting ? (
-                                    <CircularProgress color='inherit' size={18} />
-                                ) : (
-                                    <ArrowForwardRounded />
-                                )
-                            }
+                            startIcon={<ArrowForwardRounded />}
+                            loading={isSubmitting}
+                            loadingPosition="start"
                             fullWidth
                             size='large'
                             type='submit'
