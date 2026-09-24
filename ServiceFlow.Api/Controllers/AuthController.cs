@@ -496,7 +496,10 @@ public sealed class AuthController(
         var result = await externalAuthService.CompleteExternalOnboardingAsync(
             request.OrganizationName!.Trim(), cancellationToken);
 
-        return Redirect(result.RedirectUri);
+        return Ok(new
+        {
+            redirectUri = result.RedirectUri
+        });
     }
 
     private async Task SendPasswordResetEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
@@ -541,15 +544,13 @@ public sealed class AuthController(
 
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-        var confirmationUrl = Url.ActionLink(
-            action: nameof(ConfirmEmail),
-            controller: "Auth",
-            values: new
+        var confirmationUrl = QueryHelpers.AddQueryString(
+            $"{_frontendOptions.BaseUrl.TrimEnd('/')}/confirm-email",
+            new Dictionary<string, string?>
             {
-                userId = user.Id,
-                token = encodedToken
-            },
-            protocol: Request.Scheme
+                ["userId"] = user.Id,
+                ["token"] = encodedToken
+            }
         );
 
         if (confirmationUrl is null)
