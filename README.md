@@ -16,6 +16,8 @@ It helps office staff manage customers, service locations, work orders, technici
 - Forgot-password and password-reset flows
 - Google sign-in
 - Microsoft sign-in
+- React authentication screens for local registration, email confirmation, login, logout, and password recovery
+- React Google and Microsoft sign-in with external organization onboarding
 
 ### Organization onboarding
 
@@ -149,6 +151,13 @@ dotnet user-secrets set "Authentication:Microsoft:ClientId" "YOUR_MICROSOFT_CLIE
 dotnet user-secrets set "Authentication:Microsoft:ClientSecret" "YOUR_MICROSOFT_CLIENT_SECRET" --project .\ServiceFlow.Api
 ```
 
+For local OAuth testing, configure these callback URLs with the provider:
+
+```text
+Google: https://localhost:7223/signin-google
+Microsoft: https://localhost:7223/signin-microsoft
+```
+
 ### 3. Create or update the local database
 
 This is needed when setting up a fresh local database:
@@ -186,7 +195,7 @@ npm run dev
 ```text
 ServiceFlow/
 ├─ ServiceFlow.Api/       ASP.NET Core Web API
-├─ ServiceFlow.Web/       React + TypeScript application
+├─ ServiceFlow.Web/       React + TypeScript + Material UI application
 ├─ compose.yaml           Local SQL Server and Mailpit configuration
 └─ ServiceFlow.sln
 ```
