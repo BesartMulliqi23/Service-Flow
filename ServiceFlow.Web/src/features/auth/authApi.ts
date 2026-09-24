@@ -80,3 +80,14 @@ export function resetPassword(
         })
     });
 }
+
+type ExternalOnboardingResponse = {
+    redirectUri: string;
+}
+
+export function completeExternalOnboarding(organizationName: string) {
+    return apiRequest<ExternalOnboardingResponse>('/auth/external/onboarding', {
+        method: 'POST',
+        body: JSON.stringify({ organizationName })
+    });
+}

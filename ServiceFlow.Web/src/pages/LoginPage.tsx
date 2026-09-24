@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Checkbox, Container, FormControlLabel, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Container, Divider, FormControlLabel, Paper, Stack, TextField, Typography } from "@mui/material";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { useAuth } from '../features/auth/AuthContext';
 import { useState, type SubmitEvent } from 'react';
@@ -6,6 +6,7 @@ import { FullPageLoader } from '../components/FullPageLoader';
 import { ApiError } from '../api/apiClient';
 import { ArrowForwardRounded, LockOutlined } from "@mui/icons-material";
 import { PasswordField } from "../components/PasswordField";
+import { ExternalAuthenticationButtons } from "../components/ExternalAuthenticationButtons";
 
 type NavigationState = {
     from?: string
@@ -129,6 +130,10 @@ export function LoginPage() {
                         >
                             Sign in
                         </Button>
+
+                        <Divider>or</Divider>
+
+                        <ExternalAuthenticationButtons />
 
                         <Stack
                             spacing={1}

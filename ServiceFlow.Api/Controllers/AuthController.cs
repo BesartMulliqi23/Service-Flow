@@ -496,7 +496,10 @@ public sealed class AuthController(
         var result = await externalAuthService.CompleteExternalOnboardingAsync(
             request.OrganizationName!.Trim(), cancellationToken);
 
-        return Redirect(result.RedirectUri);
+        return Ok(new
+        {
+            redirectUri = result.RedirectUri
+        });
     }
 
     private async Task SendPasswordResetEmailAsync(ApplicationUser user, CancellationToken cancellationToken)

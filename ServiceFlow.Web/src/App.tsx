@@ -9,6 +9,9 @@ import { RegistrationPendingPage } from "./pages/RegistrationPendingPage"
 import { ConfirmEmailPage } from "./pages/ConfirmEmailPage"
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage"
 import { ResetPasswordPage } from "./pages/ResetPasswordPage"
+import { ExternalLoginSuccessPage } from "./pages/ExternalLoginSuccessPage"
+import { ExternalLoginErrorPage } from "./pages/ExternalLoginErrorPage"
+import { ExternalOnboardingPage } from "./pages/ExternalOnboardingPage"
 
 function App() {
   return (
@@ -20,6 +23,10 @@ function App() {
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        <Route path="/login/success" element={<ExternalLoginSuccessPage />} />
+        <Route path="/login/error" element={<ExternalLoginErrorPage />} />
+        <Route path="/onboarding/external" element={<ExternalOnboardingPage />} />
 
         <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppLayout />}>

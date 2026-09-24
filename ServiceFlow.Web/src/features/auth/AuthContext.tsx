@@ -6,7 +6,8 @@ type AuthContextValue = {
     user: CurrentUser | null,
     isInitializing: boolean,
     login: (input: LoginInput) => Promise<void>,
-    logout: () => Promise<void>
+    logout: () => Promise<void>,
+    refreshSession: () => Promise<CurrentUser | null>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -15,24 +16,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const [user, setUser] = useState<CurrentUser | null>(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
-    const restoreSession = useCallback(async () => {
+    const refreshSession = useCallback(async (): Promise<CurrentUser | null> => {
+        setIsInitializing(true);
+
         try {
             const currentUser = await getCurrentUser();
             setUser(currentUser);
+
+            return currentUser;
         } catch (error) {
-            if (!(error instanceof ApiError && error.status === 401)) {
-                console.error('Unable to restore the current session.', error);
+            setUser(null);
+
+            if (error instanceof ApiError && error.status === 401) {
+                return null;
             }
 
-            setUser(null);
+            throw error;
         } finally {
             setIsInitializing(false);
         }
     }, []);
 
     useEffect(() => {
-        void restoreSession();
-    }, [restoreSession]);
+        void refreshSession().catch(error => console.error('Unable to restore the current session.', error));
+    }, [refreshSession]);
 
     const login = useCallback(async (input: LoginInput) => {
         await loginUser(input);
@@ -53,8 +60,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         user,
         isInitializing,
         login,
-        logout
-    }), [isInitializing, login, logout, user]);
+        logout,
+        refreshSession
+    }), [isInitializing, login, logout, user, refreshSession]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
