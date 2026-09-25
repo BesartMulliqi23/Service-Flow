@@ -47,15 +47,13 @@ It helps office staff manage customers, service locations, work orders, technici
 - Database health endpoint at `/health`
 - Swagger/OpenAPI in Development
 
-## In progress
-
-### Tenant isolation and authorization
+## Authorization and tenant isolation 
  
 - Organization-scoped data access through the current authenticated organization
 - Role-based policies for Owners, Managers, Dispatchers, and Technicians
 - Tenant-aware database relationships for Customers, Service Locations, Work Orders, and Work Order Assignments
 
-### Core dispatch workflow
+## Core dispatch workflow
 
 - Customer creation, updates, deactivation, and tenant-scoped retrieval
 - Service Location creation, updates, deactivation, filtering, and tenant-scoped retrieval
@@ -68,10 +66,13 @@ It helps office staff manage customers, service locations, work orders, technici
 - Technician start and completion workflow
 - Status-change history with acting Technician, timestamp, and completion note
 - Technician scheduling-conflict detection during assignment and rescheduling
+- Tenant-scoped weekly dispatcher calendar for Scheduled and In Progress Work Orders
+- Week navigation and local-time schedule display
+- Server-side technician filtering
+- Work Order details drawer with customer, location, schedule, priority, status, and assigned technicians
 
 ## Roadmap
 
-- Calendar views
 - Materials, photos, attachments, and general Technician notes
 - Dashboard and operational reporting
 - Notifications and reminders
