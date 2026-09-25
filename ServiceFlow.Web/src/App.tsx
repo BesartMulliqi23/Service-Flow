@@ -12,6 +12,7 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage"
 import { ExternalLoginSuccessPage } from "./pages/ExternalLoginSuccessPage"
 import { ExternalLoginErrorPage } from "./pages/ExternalLoginErrorPage"
 import { ExternalOnboardingPage } from "./pages/ExternalOnboardingPage"
+import { SchedulePage } from "./pages/SchedulePage"
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
+                <Route path="schedule" element={<SchedulePage />} />
             </Route>
         </Route>
         
