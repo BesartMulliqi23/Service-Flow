@@ -26,14 +26,19 @@ export interface CalendarWorkOrder {
 
 interface GetCalendarWorkOrdersParams {
     fromUtc: Date,
-    toUtc: Date
+    toUtc: Date,
+    technicianId?: string
 }
 
-export function getCalendarWorkOrders({ fromUtc, toUtc }: GetCalendarWorkOrdersParams) {
+export function getCalendarWorkOrders({ fromUtc, toUtc, technicianId }: GetCalendarWorkOrdersParams) {
     const query = new URLSearchParams({
         fromUtc: fromUtc.toISOString(),
         toUtc: toUtc.toISOString()
     });
+
+    if (technicianId) {
+        query.set('technicianId', technicianId);
+    }
 
     return apiRequest<CalendarWorkOrder[]>(`/calendar/work-orders?${query.toString()}`);
 }
