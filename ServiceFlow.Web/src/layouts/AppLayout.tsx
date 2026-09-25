@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../features/auth/AuthContext";
 import { useState } from "react";
 import { AppBar, Avatar, Box, Button, Container, Stack, Toolbar, Typography } from "@mui/material";
@@ -8,6 +8,10 @@ export function AppLayout() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const location = useLocation();
+
+    const canViewSchedule = user?.roles.some(role => ['Owner', 'Manager', 'Dispatcher'].includes(role)) ?? false;
 
     async function handleLogout() {
         setIsLoggingOut(true);
@@ -48,6 +52,28 @@ export function AppLayout() {
                         >
                             ServiceFlow
                         </Typography>
+
+                        <Stack direction="row" spacing={1}>
+                            <Button
+                                color="inherit"
+                                component={Link}
+                                to='/app'
+                                variant={location.pathname === '/app' ? 'outlined' : 'text'}
+                            >
+                                Dashboard
+                            </Button>
+
+                            {canViewSchedule && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/schedule'
+                                    variant={location.pathname === '/app/schedule' ? 'outlined' : 'text'}
+                                >
+                                    Schedule
+                                </Button>
+                            )}
+                        </Stack>
 
                         <Avatar sx={{ bgcolor: 'primary.dark', width: 34, height: 34 }}>
                             {initials}
