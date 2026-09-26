@@ -10,6 +10,7 @@ using ServiceFlow.Api.Services.Calendar;
 using ServiceFlow.Api.Services.Customers;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
+using ServiceFlow.Api.Services.Materials;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Services.Scheduling;
 using ServiceFlow.Api.Services.ServiceLocations;
@@ -66,6 +67,7 @@ builder.Services.AddScoped<IWorkOrderAssignmentService, WorkOrderAssignmentServi
 builder.Services.AddScoped<ITechnicianWorkOrderService, TechnicianWorkOrderService>();
 builder.Services.AddScoped<ITechnicianScheduleConflictService, TechnicianScheduleConflictService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
+builder.Services.AddScoped<IMaterialCatalogService, MaterialCatalogService>();
 
 builder.Services.AddAuthorization(options =>
 {
