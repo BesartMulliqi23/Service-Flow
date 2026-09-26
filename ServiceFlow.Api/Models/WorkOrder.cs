@@ -20,4 +20,5 @@ public sealed class WorkOrder : IOrganizationOwned
     public DateTime? UpdatedUtc { get; set; }
     public ICollection<WorkOrderAssignment> Assignments { get; } = [];
     public ICollection<WorkOrderStatusChange> StatusHistory { get; } = [];
+    public ICollection<WorkOrderMaterial> Materials { get; } = [];
 }

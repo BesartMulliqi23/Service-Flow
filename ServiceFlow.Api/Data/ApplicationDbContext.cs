@@ -4,7 +4,7 @@ using ServiceFlow.Api.Models;
 
 namespace ServiceFlow.Api.Data;
 
-public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbContextOptions) 
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> dbContextOptions)
     : IdentityDbContext<ApplicationUser>(dbContextOptions)
 {
     public DbSet<Organization> Organizations => Set<Organization>();
@@ -14,7 +14,9 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
     public DbSet<WorkOrderAssignment> WorkOrderAssignments => Set<WorkOrderAssignment>();
     public DbSet<WorkOrderStatusChange> WorkOrderStatusChanges => Set<WorkOrderStatusChange>();
-    
+    public DbSet<Material> Materials => Set<Material>();
+    public DbSet<WorkOrderMaterial> WorkOrderMaterials => Set<WorkOrderMaterial>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -160,6 +162,50 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             });
         });
 
+        builder.Entity<Material>(entity =>
+        {
+            entity.Property(material => material.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(material => material.Sku)
+                .HasMaxLength(100);
+
+            entity.Property(material => material.UnitOfMeasure)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(material => material.DefaultUnitCost)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(material => material.OrganizationId)
+                .IsRequired();
+
+            entity.HasAlternateKey(material => new
+            {
+                material.Id,
+                material.OrganizationId
+            });
+
+            entity.HasIndex(material => new
+            {
+                material.OrganizationId,
+                material.IsActive,
+                material.Name
+            });
+
+            entity.HasIndex(material => new
+            {
+                material.OrganizationId,
+                material.Sku
+            })
+            .IsUnique()
+            .HasFilter("[Sku] IS NOT NULL AND [IsActive] = 1");
+        });
+
         builder.Entity<WorkOrder>(entity =>
         {
             entity.Property(workOrder => workOrder.Title)
@@ -205,6 +251,60 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             {
                 workOrder.Id,
                 workOrder.OrganizationId
+            });
+        });
+
+        builder.Entity<WorkOrderMaterial>(entity =>
+        {
+            entity.Property(workOrderMaterial => workOrderMaterial.MaterialName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(workOrderMaterial => workOrderMaterial.UnitOfMeasure)
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(workOrderMaterial => workOrderMaterial.Quantity)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.Property(workOrderMaterial => workOrderMaterial.UnitCost)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.HasOne(workOrderMaterial => workOrderMaterial.WorkOrder)
+                .WithMany(workOrder => workOrder.Materials)
+                .HasForeignKey(workOrderMaterial => new
+                {
+                    workOrderMaterial.WorkOrderId,
+                    workOrderMaterial.OrganizationId,
+                })
+                .HasPrincipalKey(workOrder => new
+                {
+                    workOrder.Id,
+                    workOrder.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(workOrderMaterial => workOrderMaterial.Material)
+                .WithMany(material => material.WorkOrderMaterials)
+                .HasForeignKey(workOrderMaterial => new
+                {
+                    workOrderMaterial.MaterialId,
+                    workOrderMaterial.OrganizationId
+                })
+                .HasPrincipalKey(material => new
+                {
+                    material.Id,
+                    material.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(workOrderMaterial => new
+            {
+                workOrderMaterial.OrganizationId,
+                workOrderMaterial.WorkOrderId,
+                workOrderMaterial.MaterialId
             });
         });
 
