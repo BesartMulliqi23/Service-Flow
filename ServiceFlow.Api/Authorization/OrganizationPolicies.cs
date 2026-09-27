@@ -7,6 +7,7 @@ public static class OrganizationPolicies
     public const string ManageMembers = "organization.manage-members";
     public const string ManageCustomers = "organization.manage-customers";
     public const string ManageWorkOrders = "organization.manage-work-orders";
+    public const string ManageWorkOrderMaterials = "organization.manage-work-order-materials";
     public const string ViewReports = "organization.view-reports";
     public const string ViewWorkOrders = "organization.view-work-orders";
     public const string ExecuteAssignedWork = "organization.execute-assigned-work";

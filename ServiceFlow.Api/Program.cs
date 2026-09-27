@@ -68,6 +68,7 @@ builder.Services.AddScoped<ITechnicianWorkOrderService, TechnicianWorkOrderServi
 builder.Services.AddScoped<ITechnicianScheduleConflictService, TechnicianScheduleConflictService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IMaterialCatalogService, MaterialCatalogService>();
+builder.Services.AddScoped<IWorkOrderMaterialService, WorkOrderMaterialService>();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -84,6 +85,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         OrganizationPolicies.ManageWorkOrders,
         policy => policy.RequireRole(OrganizationPolicies.OperationsManagers)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ManageWorkOrderMaterials,
+        policy => policy.RequireRole(OrganizationPolicies.AllOrganizationRoles)
     );
 
     options.AddPolicy(
