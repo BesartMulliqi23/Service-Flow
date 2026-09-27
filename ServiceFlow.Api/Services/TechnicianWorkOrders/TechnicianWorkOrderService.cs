@@ -180,7 +180,7 @@ public sealed class TechnicianWorkOrderService(
             .SingleOrDefaultAsync(
                 workOrder =>
                     workOrder.Id == workOrderId &&
-                    workOrder.OrganizationId == workOrder.OrganizationId &&
+                    workOrder.OrganizationId == organizationId &&
                     workOrder.Assignments.Any(
                         assignment =>
                             assignment.TechnicianId == technicianId &&

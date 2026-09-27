@@ -70,10 +70,13 @@ It helps office staff manage customers, service locations, work orders, technici
 - Week navigation and local-time schedule display
 - Server-side technician filtering
 - Work Order details drawer with customer, location, schedule, priority, status, and assigned technicians
+- Tenant-scoped material catalog with SKU, unit-of-measure, default cost, and deactivation
+- Work Order material usage tracking with quantity, cost snapshots, calculated line totals, and duplicate-line protection
+- Technician material recording for assigned In Progress Work Orders
 
 ## Roadmap
 
-- Materials, photos, attachments, and general Technician notes
+- Photos, attachments, and general Technician notes
 - Dashboard and operational reporting
 - Notifications and reminders
 - Audit logging
