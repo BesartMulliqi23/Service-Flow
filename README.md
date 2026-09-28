@@ -56,6 +56,7 @@ It helps office staff manage customers, service locations, work orders, technici
 ## Core dispatch workflow
 
 - Customer creation, updates, deactivation, and tenant-scoped retrieval
+- Dispatcher customer-management UI with customer listing, active/inactive filtering, create, edit, and deactivation workflows
 - Service Location creation, updates, deactivation, filtering, and tenant-scoped retrieval
 - Work Order creation, Draft-only updates, retrieval, and filtering
 - Work Order scheduling and rescheduling with UTC time validation

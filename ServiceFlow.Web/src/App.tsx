@@ -13,6 +13,7 @@ import { ExternalLoginSuccessPage } from "./pages/ExternalLoginSuccessPage"
 import { ExternalLoginErrorPage } from "./pages/ExternalLoginErrorPage"
 import { ExternalOnboardingPage } from "./pages/ExternalOnboardingPage"
 import { SchedulePage } from "./pages/SchedulePage"
+import { CustomersPage } from "./pages/CustomersPage"
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="/app" element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="schedule" element={<SchedulePage />} />
+                <Route path="customers" element={<CustomersPage />} />
             </Route>
         </Route>
         
