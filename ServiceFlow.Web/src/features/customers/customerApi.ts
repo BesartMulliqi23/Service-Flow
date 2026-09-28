@@ -12,10 +12,32 @@ export interface Customer {
     updatedUtc: string | null
 }
 
+export interface CustomerInput {
+    name: string,
+    contactName: string,
+    email: string,
+    phoneNumber: string,
+    notes: string
+}
+
 export function getCustomers(includeInactive: boolean) {
     const query = new URLSearchParams({
         includeInactive: String(includeInactive)
     });
 
     return apiRequest<Customer[]>(`/customers?${query.toString()}`);
+}
+
+export function createCustomer(input: CustomerInput) {
+    return apiRequest<Customer>('/customers', {
+        method: 'POST',
+        body: JSON.stringify(input)
+    });
+}
+
+export function updateCustomer(customerId: string, input: CustomerInput) {
+    return apiRequest<Customer>(`/customers/${customerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(input)
+    });
 }
