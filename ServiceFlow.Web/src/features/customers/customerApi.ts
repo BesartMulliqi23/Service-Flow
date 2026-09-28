@@ -41,3 +41,9 @@ export function updateCustomer(customerId: string, input: CustomerInput) {
         body: JSON.stringify(input)
     });
 }
+
+export function deactivateCustomer(customerId: string) {
+    return apiRequest<void>(`/customers/${customerId}/deactivate`, {
+        method: 'POST'
+    });
+}

@@ -3,8 +3,9 @@ import { useAuth } from "../features/auth/AuthContext";
 import { getCustomers, type Customer } from "../features/customers/customerApi";
 import { Navigate } from "react-router";
 import { Alert, Box, Button, Chip, CircularProgress, FormControlLabel, IconButton, Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { AddRounded, EditRounded } from "@mui/icons-material";
+import { AddRounded, EditRounded, PersonOffRounded } from "@mui/icons-material";
 import { CustomerFormDialog } from "../features/customers/CustomerFormDialog";
+import { CustomerDeactivateDialog } from "../features/customers/CustomerDeactivateDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -21,6 +22,7 @@ export function CustomersPage() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [customerToDeactivate, setCustomerToDeactivate] = useState<Customer | null>(null);
 
     const canManageCustomers = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -83,6 +85,20 @@ export function CustomersPage() {
                 currentCustomers.map(customer =>
                     customer.id === savedCustomer.id ? savedCustomer : customer
                 )
+            );
+        });
+    }
+
+    function handleCustomerDeactivated(customerId: string) {
+        setCustomers(currentCustomers => {
+            if (!includeInactive) {
+                return currentCustomers.filter(
+                    customer => customer.id !== customerId
+                );
+            }
+
+            return currentCustomers.map(customer => 
+                customer.id === customerId ? { ...customer, isActive: false } : customer
             );
         });
     }
@@ -212,6 +228,18 @@ export function CustomersPage() {
                                                     <EditRounded />
                                                 </IconButton>
                                             </Tooltip>
+
+                                            {customer.isActive && (
+                                                <Tooltip title="Deactivate customer">
+                                                    <IconButton
+                                                        aria-label={`Deactivate ${customer.name}`}
+                                                        color="warning"
+                                                        onClick={() => setCustomerToDeactivate(customer)}
+                                                    >
+                                                        <PersonOffRounded />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -226,6 +254,13 @@ export function CustomersPage() {
                 onClose={() => setIsFormOpen(false)}
                 onSaved={handleCustomerSaved}
                 open={isFormOpen}
+            />
+
+            <CustomerDeactivateDialog 
+                customer={customerToDeactivate}
+                onClose={() => setCustomerToDeactivate(null)}
+                onDeactivated={handleCustomerDeactivated}
+                open={customerToDeactivate !== null}
             />
         </>
     );
