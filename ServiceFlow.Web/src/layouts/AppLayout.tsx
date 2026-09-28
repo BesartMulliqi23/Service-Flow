@@ -13,6 +13,8 @@ export function AppLayout() {
 
     const canViewSchedule = user?.roles.some(role => ['Owner', 'Manager', 'Dispatcher'].includes(role)) ?? false;
 
+    const canManageCustomers = user?.roles.some(role => ['Owner', 'Manager', 'Dispatcher'].includes(role)) ?? false;
+
     async function handleLogout() {
         setIsLoggingOut(true);
 
@@ -62,6 +64,21 @@ export function AppLayout() {
                             >
                                 Dashboard
                             </Button>
+
+                            {canManageCustomers && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/customers'
+                                    variant={
+                                        location.pathname === '/app/customers'
+                                            ? 'outlined'
+                                            : 'text'
+                                    }
+                                >
+                                    Customers
+                                </Button>
+                            )}
 
                             {canViewSchedule && (
                                 <Button
