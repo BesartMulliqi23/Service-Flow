@@ -80,6 +80,21 @@ export function AppLayout() {
                                 </Button>
                             )}
 
+                            {canManageCustomers && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/service-locations'
+                                    variant={
+                                        location.pathname === '/app/service-locations'
+                                            ? 'outlined'
+                                            : 'text'
+                                    }
+                                >
+                                    Locations
+                                </Button>
+                            )}
+
                             {canViewSchedule && (
                                 <Button
                                     color="inherit"

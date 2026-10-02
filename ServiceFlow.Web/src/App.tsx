@@ -14,6 +14,7 @@ import { ExternalLoginErrorPage } from "./pages/ExternalLoginErrorPage"
 import { ExternalOnboardingPage } from "./pages/ExternalOnboardingPage"
 import { SchedulePage } from "./pages/SchedulePage"
 import { CustomersPage } from "./pages/CustomersPage"
+import { ServiceLocationsPage } from "./pages/ServiceLocationsPage"
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="schedule" element={<SchedulePage />} />
                 <Route path="customers" element={<CustomersPage />} />
+                <Route path="service-locations" element={<ServiceLocationsPage />} />
             </Route>
         </Route>
         
