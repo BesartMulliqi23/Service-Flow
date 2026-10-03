@@ -16,6 +16,17 @@ export interface ServiceLocation {
     updatedutc: string | null
 }
 
+export interface ServiceLocationInput {
+    customerId: string,
+    name: string,
+    addressLine1: string,
+    addressLine2: string | null,
+    city: string,
+    postalCode: string,
+    country: string,
+    accessInstructions: string | null
+}
+
 interface GetServiceLocationParams {
     customerId?: string,
     includeInactive: boolean
@@ -34,4 +45,11 @@ export function getServiceLocations({
     }
 
     return apiRequest<ServiceLocation[]>(`/servicelocations?${query.toString()}`);
+}
+
+export function createServiceLocation(input: ServiceLocationInput) {
+    return apiRequest<ServiceLocation>('/servicelocations', {
+        method: 'POST',
+        body: JSON.stringify(input)
+    });
 }
