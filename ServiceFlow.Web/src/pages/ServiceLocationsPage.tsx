@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
-import { createServiceLocation, getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
+import { createServiceLocation, getServiceLocations, updateServiceLocation, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
 import { getCustomers, type Customer } from "../features/customers/customerApi";
 import { Navigate } from "react-router";
-import { Alert, Box, Button, Chip, CircularProgress, FormControl, FormControlLabel, InputLabel, MenuItem, Paper, Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
-import { AddRounded } from "@mui/icons-material";
+import { Alert, Box, Button, Chip, CircularProgress, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { AddRounded, EditRounded, PersonOffRounded } from "@mui/icons-material";
 import { ServiceLocationFormDialog } from "../features/serviceLocations/ServiceLocationFormDialog";
+import { ServiceLocationDeactivateDialog } from "../features/serviceLocations/ServiceLocationDeactivateDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -22,7 +23,11 @@ function formatAddress(location: ServiceLocation) {
 }
 
 function sortLocations(locations: ServiceLocation[]) {
-    return [...locations].sort((first, second) => first.name.localeCompare(second.name));
+    return [...locations].sort(
+        (first, second) => 
+            first.customerName.localeCompare(second.customerName) ||
+            first.name.localeCompare(second.name)
+    );
 }
 
 export function ServiceLocationsPage() {
@@ -37,6 +42,8 @@ export function ServiceLocationsPage() {
     const [locationsErrorMessage, setLocationsErrorMessage] = useState<string | null>(null);
     const [customersErrorMessage, setCustomersErrorMessage] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState<ServiceLocation | null>(null);
+    const [locationToDeactivate, setLocationToDeactivate] = useState<ServiceLocation | null>(null);
 
     const canManageServiceLocations = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -109,14 +116,42 @@ export function ServiceLocationsPage() {
         return <Navigate replace to='/app' />
     }
 
+    function openCreateDialog() {
+        setSelectedLocation(null);
+        setIsFormOpen(true);
+    }
+
+    function openEditDialog(location: ServiceLocation) {
+        setSelectedLocation(location);
+        setIsFormOpen(true);
+    }
+
     function handleLocationSaved(savedLocation: ServiceLocation) {
         const matchesCurrentCustomerFilter = !selectedCustomerId || savedLocation.customerId === selectedCustomerId;
 
-        if (!matchesCurrentCustomerFilter) {
-            return;
-        }
+        setLocations(currentLocations => {
+            const locationsWithoutSavedLocation = currentLocations.filter(
+                location => location.id !== savedLocation.id
+            );
 
-        setLocations(currentLocations => sortLocations([...currentLocations, savedLocation]));
+            if (!matchesCurrentCustomerFilter) {
+                return locationsWithoutSavedLocation;
+            }
+
+            return sortLocations([...locationsWithoutSavedLocation, savedLocation]);
+        });
+    }
+
+    function handleLocationDeactivated(serviceLocationId: string) {
+        setLocations(currentLocations => {
+            if (!includeInactive) {
+                return currentLocations.filter(location => location.id !== serviceLocationId);
+            }
+
+            return currentLocations.map(location => 
+                location.id === serviceLocationId ? { ...location, isActive: false} : location
+            );
+        });
     }
 
     return (
@@ -139,7 +174,7 @@ export function ServiceLocationsPage() {
 
                     <Button
                         disabled={isLoadingCustomers || customers.length === 0}
-                        onClick={() => setIsFormOpen(true)}
+                        onClick={openCreateDialog}
                         startIcon={<AddRounded />}
                         variant="contained"
                     >
@@ -241,6 +276,7 @@ export function ServiceLocationsPage() {
                                     <TableCell>City</TableCell>
                                     <TableCell>Country</TableCell>
                                     <TableCell>Status</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
                             </TableHead>
 
@@ -276,6 +312,29 @@ export function ServiceLocationsPage() {
                                                 size="small"
                                             />
                                         </TableCell>
+
+                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap'}}>
+                                            <Tooltip title="Edit service location">
+                                                <IconButton
+                                                    aria-label={`Edit ${location.name}`}
+                                                    onClick={() => openEditDialog(location)}
+                                                >
+                                                    <EditRounded />
+                                                </IconButton>
+                                            </Tooltip>
+
+                                            {location.isActive && (
+                                                <Tooltip title="Deactivate service location">
+                                                    <IconButton
+                                                        aria-label={`Deactivate ${location.name}`}
+                                                        onClick={() => setLocationToDeactivate(location)}
+                                                        color="warning"
+                                                    >
+                                                        <PersonOffRounded />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            )}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -286,10 +345,22 @@ export function ServiceLocationsPage() {
 
             <ServiceLocationFormDialog 
                 customers={customers}
+                location={selectedLocation}
                 onClose={() => setIsFormOpen(false)}
                 onSaved={handleLocationSaved}
-                onSubmit={createServiceLocation}
+                onSubmit={input =>
+                    selectedLocation
+                        ? updateServiceLocation(selectedLocation.id, input)
+                        : createServiceLocation(input)
+                }
                 open={isFormOpen}
+            />
+
+            <ServiceLocationDeactivateDialog 
+                location={locationToDeactivate}
+                onClose={() => setLocationToDeactivate(null)}
+                onDeactivated={handleLocationDeactivated}
+                open={locationToDeactivate !== null}
             />
         </>
     );

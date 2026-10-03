@@ -6,44 +6,50 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, 
 
 type ServiceLocationFormDialogProps = {
     customers: Customer[],
+    location: ServiceLocation | null,
     onClose: () => void,
     onSaved: (location: ServiceLocation) => void,
     onSubmit: (input: ServiceLocationInput) => Promise<ServiceLocation>,
     open: boolean
 }
 
-const initialInput: ServiceLocationInput = {
-    customerId: '',
-    name: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    postalCode: '',
-    country: '',
-    accessInstructions: ''
+function createInitialInput(location: ServiceLocation | null) {
+    return {
+        customerId: location?.customerId ?? '',
+        name: location?.name ?? '',
+        addressLine1: location?.addressLine1 ?? '',
+        addressLine2: location?.addressLine2 ?? '',
+        city: location?.city ?? '',
+        postalCode: location?.postalCode ?? '',
+        country: location?.country ?? '',
+        accessInstructions: location?.accessInstructions ?? ''
+    }
 }
 
 export function ServiceLocationFormDialog({
     customers,
+    location,
     onClose,
     onSaved,
     onSubmit,
     open
 }: ServiceLocationFormDialogProps) {
-    const [input, setInput] = useState<ServiceLocationInput>(initialInput);
+    const [input, setInput] = useState<ServiceLocationInput>(createInitialInput(location));
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const isEditing = location !== null;
 
     useEffect(() => {
         if (!open) {
             return;
         }
 
-        setInput(initialInput);
+        setInput(createInitialInput(location));
         setValidationErrors({});
         setErrorMessage(null);
-    }, [open]);
+    }, [open, location]);
 
     function getFieldError(fieldName: string): string | undefined {
         return validationErrors[fieldName]?.[0];
@@ -54,6 +60,12 @@ export function ServiceLocationFormDialog({
             ...current,
             [fieldName]: value
         }));
+    }
+
+    function handleClose() {
+        if (!isSubmitting) {
+            onClose();
+        }
     }
 
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -86,9 +98,11 @@ export function ServiceLocationFormDialog({
     }
 
     return (
-        <Dialog fullWidth maxWidth="sm" onClose={onClose} open={open}>
+        <Dialog fullWidth maxWidth="sm" onClose={handleClose} open={open}>
             <Box component="form" onSubmit={e => void handleSubmit(e)}>
-                <DialogTitle>New service location</DialogTitle>
+                <DialogTitle>
+                    {isEditing ? 'Edit service location' : 'New service location'}
+                </DialogTitle>
 
                 <DialogContent dividers>
                     <Stack spacing={2}>
@@ -98,6 +112,7 @@ export function ServiceLocationFormDialog({
                             error={Boolean(getFieldError('customerId'))}
                             fullWidth
                             required
+                            disabled={isEditing}
                         >
                             <InputLabel id="location-customer-label">Customer</InputLabel>
 
@@ -114,7 +129,11 @@ export function ServiceLocationFormDialog({
                                 ))}
                             </Select>
 
-                            <FormHelperText>{getFieldError('customerId')}</FormHelperText>
+                            <FormHelperText>
+                                {isEditing 
+                                    ? 'A service location cannot be moved to another customer.' 
+                                    : getFieldError('customerId')}
+                            </FormHelperText>
                         </FormControl>
 
                         <TextField
@@ -199,7 +218,7 @@ export function ServiceLocationFormDialog({
                 </DialogContent>
 
                 <DialogActions sx={{ p: 2 }}>
-                    <Button disabled={isSubmitting} onClick={onClose}>
+                    <Button disabled={isSubmitting} onClick={handleClose}>
                         Cancel
                     </Button>
 
@@ -208,7 +227,7 @@ export function ServiceLocationFormDialog({
                         type="submit"
                         variant="contained"
                     >
-                        Create location
+                        {isEditing ? 'Save changes': 'Create location'}
                     </Button>
                 </DialogActions>
             </Box>
