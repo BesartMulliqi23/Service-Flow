@@ -99,6 +99,21 @@ export function AppLayout() {
                                 <Button
                                     color="inherit"
                                     component={Link}
+                                    to='/app/work-orders'
+                                    variant={
+                                        location.pathname === '/app/work-orders'
+                                            ? 'outlined'
+                                            : 'text'
+                                    }
+                                >
+                                    Work orders
+                                </Button>
+                            )}
+
+                            {canViewSchedule && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
                                     to='/app/schedule'
                                     variant={location.pathname === '/app/schedule' ? 'outlined' : 'text'}
                                 >

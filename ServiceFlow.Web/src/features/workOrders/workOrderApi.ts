@@ -1,0 +1,48 @@
+import { apiRequest } from "../../api/apiClient";
+
+export type WorkOrderPriority = 'Low' | 'Normal' | 'High' | 'Urgent';
+
+export type WorkOrderStatus = 'Draft' | 'Scheduled' | 'InProgress' | 'Completed' | 'Cancelled';
+
+export interface WorkOrder {
+    id: string,
+    serviceLocationId: string,
+    serviceLocationName: string,
+    customerId: string,
+    customerName: string,
+    title: string,
+    description: string,
+    priority: WorkOrderPriority,
+    status: WorkOrderStatus,
+    dueUtc: string | null,
+    scheduledStartUtc: string | null,
+    scheduledEndUtc: string | null,
+    startedUtc: string | null,
+    completedUtc: string | null,
+    createdUtc: string,
+    updatedUtc: string | null
+}
+
+interface GetWorkOrdersParams {
+    serviceLocationId?: string,
+    status?: WorkOrderStatus
+}
+
+export function getWorkOrders({
+    serviceLocationId,
+    status
+}: GetWorkOrdersParams) {
+    const query = new URLSearchParams();
+
+    if (serviceLocationId) {
+        query.set('serviceLocationId', serviceLocationId);
+    }
+
+    if (status) {
+        query.set('status', status);
+    }
+
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+
+    return apiRequest<WorkOrder[]>(`/workorders${suffix}`);
+}
