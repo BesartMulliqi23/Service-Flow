@@ -23,6 +23,14 @@ export interface WorkOrder {
     updatedUtc: string | null
 }
 
+export interface WorkOrderInput {
+    serviceLocationId: string,
+    title: string,
+    description: string,
+    priority: WorkOrderPriority,
+    dueUtc: string | null
+}
+
 interface GetWorkOrdersParams {
     serviceLocationId?: string,
     status?: WorkOrderStatus
@@ -45,4 +53,23 @@ export function getWorkOrders({
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
 
     return apiRequest<WorkOrder[]>(`/workorders${suffix}`);
+}
+
+export function createWorkOrder(input: WorkOrderInput) {
+    return apiRequest<WorkOrder>('/workorders', {
+        method: 'POST',
+        body: JSON.stringify(input)
+    });
+}
+
+export function updateWorkOrder(workOrderId: string, input: WorkOrderInput) {
+    return apiRequest<WorkOrder>(`/workorders/${workOrderId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            title: input.title,
+            description: input.description,
+            priority: input.priority,
+            dueUtc: input.dueUtc
+        })
+    });
 }

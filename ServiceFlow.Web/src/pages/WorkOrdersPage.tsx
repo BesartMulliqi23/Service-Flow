@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
-import { getWorkOrders, type WorkOrder, type WorkOrderPriority, type WorkOrderStatus } from "../features/workOrders/workOrderApi";
+import { createWorkOrder, getWorkOrders, updateWorkOrder, type WorkOrder, type WorkOrderPriority, type WorkOrderStatus } from "../features/workOrders/workOrderApi";
 import { getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
 import { Navigate } from "react-router";
-import { Alert, Box, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { AddRounded, EditRounded } from "@mui/icons-material";
+import { WorkOrderFormDialog } from "../features/workOrders/WorkOrderFormDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -82,8 +84,12 @@ export function WorkOrdersPage() {
     const [isLoadingServiceLocations, setIsLoadingServiceLocations] = useState(true);
     const [workOrdersErrorMessage, setWorkOrdersErrorMessage] = useState<string | null>(null);
     const [serviceLocationsErrorMessage, setServiceLocationsErrorMessage] = useState<string | null>(null);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
 
     const canManageWorkOrders = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
+
+    const activeServiceLocations = serviceLocations.filter(location => location.isActive);
 
     useEffect(() => {
         let isCurrentRequest = true;
@@ -156,164 +162,249 @@ export function WorkOrdersPage() {
         return <Navigate to='/app' replace />
     }
 
+    function openCreateDialog() {
+        setSelectedWorkOrder(null);
+        setIsFormOpen(true);
+    }
+
+    function openEditDialog(workOrder: WorkOrder) {
+        setSelectedWorkOrder(workOrder);
+        setIsFormOpen(true);
+    }
+
+    function handleWorkOrderSaved(savedWorkOrder: WorkOrder) {
+        const matchesServiceLocationFilter =
+            !selectedServiceLocationId || savedWorkOrder.serviceLocationId === selectedServiceLocationId;
+
+        const matchesStatusFilter =
+            !selectedStatus || savedWorkOrder.status === selectedStatus;
+
+        setWorkOrders(currentWorkOrders => {
+            const withoutSavedWorkOrder = currentWorkOrders.filter(order => order.id !== savedWorkOrder.id);
+
+            if (!matchesServiceLocationFilter || !matchesStatusFilter) {
+                return withoutSavedWorkOrder;
+            }
+
+            if (currentWorkOrders.some(order => order.id === savedWorkOrder.id)) {
+                return [...withoutSavedWorkOrder, savedWorkOrder];
+            }
+
+            return [savedWorkOrder, ...withoutSavedWorkOrder];
+        });
+    }
+
     return (
-        <Stack spacing={3}>
-            <Box>
-                <Typography component='h1' variant='h4' sx={{ fontWeight: 700 }}>
-                    Work orders
-                </Typography>
+        <>
+            <Stack spacing={3}>
+                <Stack
+                    spacing={2}
+                    direction={{ xs: 'column', sm: 'row' }}
+                    sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between'
+                    }}
+                >
+                    <Box>
+                        <Typography component='h1' variant='h4' sx={{ fontWeight: 700 }}>
+                            Work orders
+                        </Typography>
 
-                <Typography color='text.secondary' sx={{ mt: 0.5 }}>
-                    Manage service requests, scheduling, and technician assignments.
-                </Typography>
-            </Box>
+                        <Typography color='text.secondary' sx={{ mt: 0.5 }}>
+                            Manage service requests, scheduling, and technician assignments.
+                        </Typography>
+                    </Box>
 
-            <Paper sx={{ p: 2 }}>
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                    <FormControl
-                        disabled={isLoadingServiceLocations}
-                        size="small"
-                        sx={{ minWidth: { xs: '100%', md: 280 } }}
+                    <Button
+                        disabled={isLoadingServiceLocations || activeServiceLocations.length === 0}
+                        onClick={openCreateDialog}
+                        startIcon={<AddRounded />}
+                        variant="contained"
                     >
-                        <InputLabel id='work-order-location-filter-label'>
-                            Service location
-                        </InputLabel>
-
-                        <Select
-                            label="Service location"
-                            labelId="work-order-location-filter-label"
-                            onChange={e => setSelectedServiceLocationId(e.target.value)}
-                            value={selectedServiceLocationId}
-                        >
-                            <MenuItem value="">
-                                <em>All service locations</em>
-                            </MenuItem>
-
-                            {serviceLocations.map(sl => (
-                                <MenuItem key={sl.id} value={sl.id}>
-                                    {sl.customerName} — {sl.name}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-
-                    <FormControl
-                        size="small"
-                        sx={{ minWidth: { xs: '100%', md: 180 } }}
-                    >
-                        <InputLabel id='work-order-status-filter-label'>
-                            Status
-                        </InputLabel>
-
-                        <Select
-                            label="Status"
-                            labelId="work-order-status-filter-label"
-                            onChange={e => setSelectedStatus(e.target.value)}
-                            value={selectedStatus}
-                        >
-                            <MenuItem value="">
-                                <em>All statuses</em>
-                            </MenuItem>
-
-                            {workOrderStatuses.map(status => (
-                                <MenuItem key={status} value={status}>
-                                    {formatStatus(status)}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                        New work order
+                    </Button>
                 </Stack>
-            </Paper>
 
-            {serviceLocationsErrorMessage && <Alert severity="error">{serviceLocationsErrorMessage}</Alert>}
+                {!isLoadingServiceLocations && activeServiceLocations.length === 0 && (
+                    <Alert severity="info">
+                        Create an active service location before creating a Work Order.
+                    </Alert>
+                )}
 
-            {workOrdersErrorMessage && <Alert severity="error">{workOrdersErrorMessage}</Alert>}
+                <Paper sx={{ p: 2 }}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                        <FormControl
+                            disabled={isLoadingServiceLocations}
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', md: 280 } }}
+                        >
+                            <InputLabel id='work-order-location-filter-label'>
+                                Service location
+                            </InputLabel>
 
-            {isLoadingWorkOrders ? (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        py: 8
-                    }}
-                >
-                    <CircularProgress aria-label="Loading work orders" />
-                </Box>
-            ) : workOrders.length === 0 ? (
-                <Paper
-                    sx={{
-                        border: '1px dashed',
-                        borderColor: 'divider',
-                        p: 4,
-                        textAlign: 'center'
-                    }}
-                >
-                    <Typography sx={{ fontWeight: 600 }} component="h6">
-                        No work orders found
-                    </Typography>
+                            <Select
+                                label="Service location"
+                                labelId="work-order-location-filter-label"
+                                onChange={e => setSelectedServiceLocationId(e.target.value)}
+                                value={selectedServiceLocationId}
+                            >
+                                <MenuItem value="">
+                                    <em>All service locations</em>
+                                </MenuItem>
 
-                    <Typography color="text.secondary" sx={{ mt: 1 }}>
-                        Create a draft work order to begin planning service work.
-                    </Typography>
+                                {serviceLocations.map(sl => (
+                                    <MenuItem key={sl.id} value={sl.id}>
+                                        {sl.customerName} — {sl.name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', md: 180 } }}
+                        >
+                            <InputLabel id='work-order-status-filter-label'>
+                                Status
+                            </InputLabel>
+
+                            <Select
+                                label="Status"
+                                labelId="work-order-status-filter-label"
+                                onChange={e => setSelectedStatus(e.target.value)}
+                                value={selectedStatus}
+                            >
+                                <MenuItem value="">
+                                    <em>All statuses</em>
+                                </MenuItem>
+
+                                {workOrderStatuses.map(status => (
+                                    <MenuItem key={status} value={status}>
+                                        {formatStatus(status)}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Stack>
                 </Paper>
-            ) : (
-                <TableContainer component={Paper} variant="outlined">
-                    <Table aria-label="Work orders">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Work order</TableCell>
-                                <TableCell>Customer</TableCell>
-                                <TableCell>Service location</TableCell>
-                                <TableCell>Priority</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Due</TableCell>
-                                <TableCell>Schedule</TableCell>
-                            </TableRow>
-                        </TableHead>
 
-                        <TableBody>
-                            {workOrders.map(workOrder => (
-                                <TableRow key={workOrder.id} hover>
-                                    <TableCell>
-                                        <Typography sx={{ fontWeight: 600 }}>
-                                            {workOrder.title}
-                                        </Typography>
-                                    </TableCell>
+                {serviceLocationsErrorMessage && <Alert severity="error">{serviceLocationsErrorMessage}</Alert>}
 
-                                    <TableCell>{workOrder.customerName}</TableCell>
+                {workOrdersErrorMessage && <Alert severity="error">{workOrdersErrorMessage}</Alert>}
 
-                                    <TableCell>{workOrder.serviceLocationName}</TableCell>
-                                    
-                                    <TableCell>
-                                        <Chip
-                                            color={getPriorityColor(workOrder.priority)}
-                                            label={workOrder.priority}
-                                            size="small"
-                                            variant="outlined"
-                                        />
-                                    </TableCell>
+                {isLoadingWorkOrders ? (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            py: 8
+                        }}
+                    >
+                        <CircularProgress aria-label="Loading work orders" />
+                    </Box>
+                ) : workOrders.length === 0 ? (
+                    <Paper
+                        sx={{
+                            border: '1px dashed',
+                            borderColor: 'divider',
+                            p: 4,
+                            textAlign: 'center'
+                        }}
+                    >
+                        <Typography sx={{ fontWeight: 600 }} component="h6">
+                            No work orders found
+                        </Typography>
 
-                                    <TableCell>
-                                        <Chip
-                                            color={getStatusColor(workOrder.status)}
-                                            label={formatStatus(workOrder.status)}
-                                            size="small"
-                                        />
-                                    </TableCell>
-
-                                    <TableCell>
-                                        {formatDate(workOrder.dueUtc)}
-                                    </TableCell>
-
-                                    <TableCell>
-                                        {formatSchedule(workOrder)}
-                                    </TableCell>
+                        <Typography color="text.secondary" sx={{ mt: 1 }}>
+                            Create a draft work order to begin planning service work.
+                        </Typography>
+                    </Paper>
+                ) : (
+                    <TableContainer component={Paper} variant="outlined">
+                        <Table aria-label="Work orders">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Work order</TableCell>
+                                    <TableCell>Customer</TableCell>
+                                    <TableCell>Service location</TableCell>
+                                    <TableCell>Priority</TableCell>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell>Due</TableCell>
+                                    <TableCell>Schedule</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
-        </Stack>
+                            </TableHead>
+
+                            <TableBody>
+                                {workOrders.map(workOrder => (
+                                    <TableRow key={workOrder.id} hover>
+                                        <TableCell>
+                                            <Typography sx={{ fontWeight: 600 }}>
+                                                {workOrder.title}
+                                            </Typography>
+                                        </TableCell>
+
+                                        <TableCell>{workOrder.customerName}</TableCell>
+
+                                        <TableCell>{workOrder.serviceLocationName}</TableCell>
+
+                                        <TableCell>
+                                            <Chip
+                                                color={getPriorityColor(workOrder.priority)}
+                                                label={workOrder.priority}
+                                                size="small"
+                                                variant="outlined"
+                                            />
+                                        </TableCell>
+
+                                        <TableCell>
+                                            <Chip
+                                                color={getStatusColor(workOrder.status)}
+                                                label={formatStatus(workOrder.status)}
+                                                size="small"
+                                            />
+                                        </TableCell>
+
+                                        <TableCell>
+                                            {formatDate(workOrder.dueUtc)}
+                                        </TableCell>
+
+                                        <TableCell>
+                                            {formatSchedule(workOrder)}
+                                        </TableCell>
+
+                                        <TableCell align="right">
+                                            {workOrder.status === 'Draft' ? (
+                                                <Tooltip title='Edit draft work order'>
+                                                    <IconButton
+                                                        aria-label={`Edit ${workOrder.title}`}
+                                                        onClick={() => openEditDialog(workOrder)}
+                                                    >
+                                                        <EditRounded />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
+            </Stack>
+
+            <WorkOrderFormDialog 
+                onClose={() => setIsFormOpen(false)}
+                onSaved={handleWorkOrderSaved}
+                onSubmit={input => 
+                    selectedWorkOrder ? updateWorkOrder(selectedWorkOrder.id, input) : createWorkOrder(input)
+                }
+                open={isFormOpen}
+                serviceLocations={serviceLocations}
+                workOrder={selectedWorkOrder}
+            />
+        </>
     );
 }
