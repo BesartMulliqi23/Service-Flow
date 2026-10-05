@@ -89,7 +89,7 @@ export function ScheduleWorkOrderDialog({
             errors.scheduledEndUtc = ['A scheduled end time is required.'];
         }
 
-        if (values.scheduledStart && values.scheduledEnd &&
+        if (values.scheduledStart && values.scheduledEnd && 
             new Date(values.scheduledStart) >= new Date(values.scheduledEnd)
         ) {
             errors.scheduledEndUtc = ['Scheduled end time must be later than scheduled start time.'];
@@ -122,10 +122,6 @@ export function ScheduleWorkOrderDialog({
                 scheduledEndUtc: new Date(values.scheduledEnd).toISOString()
             });
 
-            console.log('Scheduled work order returned from API:', scheduledWorkOrder);
-            console.log('Returned scheduledStartUtc:', scheduledWorkOrder.scheduledStartUtc);
-            console.log('Returned scheduledEndUtc:', scheduledWorkOrder.scheduledEndUtc);
-
             onScheduled(scheduledWorkOrder);
             onClose();
         } catch (error) {
@@ -156,7 +152,7 @@ export function ScheduleWorkOrderDialog({
                     <Stack spacing={2}>
                         {errorMessage && <Alert severity='error'>{errorMessage}</Alert>}
 
-                        <TextField
+                        <TextField 
                             error={Boolean(getFieldError('scheduledStartUtc'))}
                             helperText={getFieldError('scheduledStartUtc')}
                             fullWidth
@@ -168,7 +164,7 @@ export function ScheduleWorkOrderDialog({
                             type="datetime-local"
                         />
 
-                        <TextField
+                        <TextField 
                             error={Boolean(getFieldError('scheduledEndUtc'))}
                             helperText={getFieldError('scheduledEndUtc')}
                             fullWidth
