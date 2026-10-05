@@ -4,8 +4,9 @@ import { createWorkOrder, getWorkOrders, updateWorkOrder, type WorkOrder, type W
 import { getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
 import { Navigate } from "react-router";
 import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { AddRounded, EditRounded } from "@mui/icons-material";
+import { AddRounded, EditRounded, EventRounded } from "@mui/icons-material";
 import { WorkOrderFormDialog } from "../features/workOrders/WorkOrderFormDialog";
+import { ScheduleWorkOrderDialog } from "../features/workOrders/ScheduleWorkOrderDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -86,6 +87,7 @@ export function WorkOrdersPage() {
     const [serviceLocationsErrorMessage, setServiceLocationsErrorMessage] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
+    const [workOrderToSchedule, setWorkOrderToSchedule] = useState<WorkOrder | null>(null);
 
     const canManageWorkOrders = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -172,6 +174,10 @@ export function WorkOrdersPage() {
         setIsFormOpen(true);
     }
 
+    function openScheduleDialog(workOrder: WorkOrder) {
+        setWorkOrderToSchedule(workOrder);
+    }
+
     function handleWorkOrderSaved(savedWorkOrder: WorkOrder) {
         const matchesServiceLocationFilter =
             !selectedServiceLocationId || savedWorkOrder.serviceLocationId === selectedServiceLocationId;
@@ -180,14 +186,18 @@ export function WorkOrdersPage() {
             !selectedStatus || savedWorkOrder.status === selectedStatus;
 
         setWorkOrders(currentWorkOrders => {
+            const existingWorkOrder = currentWorkOrders.find(order => order.id === savedWorkOrder.id);
+
             const withoutSavedWorkOrder = currentWorkOrders.filter(order => order.id !== savedWorkOrder.id);
 
             if (!matchesServiceLocationFilter || !matchesStatusFilter) {
                 return withoutSavedWorkOrder;
             }
 
-            if (currentWorkOrders.some(order => order.id === savedWorkOrder.id)) {
-                return [...withoutSavedWorkOrder, savedWorkOrder];
+            if (existingWorkOrder) {
+                return currentWorkOrders.map(order => 
+                    order.id === savedWorkOrder.id ? savedWorkOrder : order
+                );
             }
 
             return [savedWorkOrder, ...withoutSavedWorkOrder];
@@ -374,18 +384,41 @@ export function WorkOrdersPage() {
                                         </TableCell>
 
                                         <TableCell align="right">
-                                            {workOrder.status === 'Draft' ? (
-                                                <Tooltip title='Edit draft work order'>
-                                                    <IconButton
-                                                        aria-label={`Edit ${workOrder.title}`}
-                                                        onClick={() => openEditDialog(workOrder)}
-                                                    >
-                                                        <EditRounded />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            ) : (
-                                                '—'
-                                            )}
+                                            <Stack
+                                                direction='row'
+                                                spacing={0.5}
+                                                sx={{ justifyContent: 'flex-end' }}
+                                            >
+                                                {workOrder.status === 'Draft' && (
+                                                    <Tooltip title='Edit draft work order'>
+                                                        <IconButton
+                                                            aria-label={`Edit ${workOrder.title}`}
+                                                            onClick={() => openEditDialog(workOrder)}
+                                                        >
+                                                            <EditRounded />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                                
+                                                {(workOrder.status === 'Draft' || workOrder.status === 'Scheduled') && (
+                                                    <Tooltip title={
+                                                        workOrder.status === 'Scheduled'
+                                                            ? 'Reschedule Work Order'
+                                                            : 'Schedule Work Order'
+                                                    }>
+                                                        <IconButton
+                                                            aria-label={`Schedule ${workOrder.title}`}
+                                                            onClick={() => openScheduleDialog(workOrder)}
+                                                            color="primary"
+                                                        >
+                                                            <EventRounded />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+
+                                                {workOrder.status !== 'Draft'
+                                                    && workOrder.status !== 'Scheduled' && '—'}
+                                            </Stack>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -404,6 +437,13 @@ export function WorkOrdersPage() {
                 open={isFormOpen}
                 serviceLocations={serviceLocations}
                 workOrder={selectedWorkOrder}
+            />
+
+            <ScheduleWorkOrderDialog 
+                onClose={() => setWorkOrderToSchedule(null)}
+                onScheduled={handleWorkOrderSaved}
+                open={workOrderToSchedule !== null}
+                workOrder={workOrderToSchedule}
             />
         </>
     );

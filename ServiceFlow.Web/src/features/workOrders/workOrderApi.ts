@@ -31,6 +31,11 @@ export interface WorkOrderInput {
     dueUtc: string | null
 }
 
+export interface ScheduleWorkOrderInput {
+    scheduledStartUtc: string,
+    scheduledEndUtc: string
+}
+
 interface GetWorkOrdersParams {
     serviceLocationId?: string,
     status?: WorkOrderStatus
@@ -71,5 +76,12 @@ export function updateWorkOrder(workOrderId: string, input: WorkOrderInput) {
             priority: input.priority,
             dueUtc: input.dueUtc
         })
+    });
+}
+
+export function scheduleWorkOrder(workOrderId: string, input: ScheduleWorkOrderInput) {
+    return apiRequest<WorkOrder>(`/workorders/${workOrderId}/schedule`, {
+        method: 'POST',
+        body: JSON.stringify(input)
     });
 }
