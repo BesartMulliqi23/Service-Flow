@@ -85,3 +85,27 @@ export function scheduleWorkOrder(workOrderId: string, input: ScheduleWorkOrderI
         body: JSON.stringify(input)
     });
 }
+
+export interface WorkOrderAssignment {
+    technicianId: string,
+    displayName: string,
+    email: string,
+    assignedUtc: string
+}
+
+export function getWorkOrderAssignments(workOrderId: string) {
+    return apiRequest<WorkOrderAssignment[]>(`/workorders/${workOrderId}/assignments`);
+}
+
+export function assignTechnician(workOrderId: string, technicianId: string) {
+    return apiRequest<WorkOrderAssignment>(`/workorders/${workOrderId}/assignments`, {
+        method: 'POST',
+        body: JSON.stringify({ technicianId })
+    });
+}
+
+export function removeTechnicianAssignment(workOrderId: string, technicianId: string) {
+    return apiRequest<void>(`/workorders/${workOrderId}/assignments/${technicianId}`, {
+        method: 'DELETE'
+    });
+}

@@ -4,9 +4,10 @@ import { createWorkOrder, getWorkOrders, updateWorkOrder, type WorkOrder, type W
 import { getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
 import { Navigate } from "react-router";
 import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { AddRounded, EditRounded, EventRounded } from "@mui/icons-material";
+import { AddRounded, EditRounded, EventRounded, GroupAddRounded } from "@mui/icons-material";
 import { WorkOrderFormDialog } from "../features/workOrders/WorkOrderFormDialog";
 import { ScheduleWorkOrderDialog } from "../features/workOrders/ScheduleWorkOrderDialog";
+import { WorkOrderAssignmentsDialog } from "../features/workOrders/WorkOrderAssignmentsDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -88,6 +89,7 @@ export function WorkOrdersPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
     const [workOrderToSchedule, setWorkOrderToSchedule] = useState<WorkOrder | null>(null);
+    const [workOrderToAssign, setWorkOrderToAssign] = useState<WorkOrder | null>(null);
 
     const canManageWorkOrders = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -178,6 +180,10 @@ export function WorkOrdersPage() {
         setWorkOrderToSchedule(workOrder);
     }
 
+    function openAssignmentDialog(workOrder: WorkOrder) {
+        setWorkOrderToAssign(workOrder);
+    }
+
     function handleWorkOrderSaved(savedWorkOrder: WorkOrder) {
         const matchesServiceLocationFilter =
             !selectedServiceLocationId || savedWorkOrder.serviceLocationId === selectedServiceLocationId;
@@ -195,7 +201,7 @@ export function WorkOrdersPage() {
             }
 
             if (existingWorkOrder) {
-                return currentWorkOrders.map(order => 
+                return currentWorkOrders.map(order =>
                     order.id === savedWorkOrder.id ? savedWorkOrder : order
                 );
             }
@@ -399,7 +405,7 @@ export function WorkOrdersPage() {
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}
-                                                
+
                                                 {(workOrder.status === 'Draft' || workOrder.status === 'Scheduled') && (
                                                     <Tooltip title={
                                                         workOrder.status === 'Scheduled'
@@ -416,6 +422,18 @@ export function WorkOrdersPage() {
                                                     </Tooltip>
                                                 )}
 
+                                                {workOrder.status === 'Scheduled' && (
+                                                    <Tooltip title='Manage Technician Assignments'>
+                                                        <IconButton
+                                                            aria-label={`Manage technician assignments for ${workOrder.title}`}
+                                                            color='secondary'
+                                                            onClick={() => openAssignmentDialog(workOrder)}
+                                                        >
+                                                            <GroupAddRounded />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+
                                                 {workOrder.status !== 'Draft'
                                                     && workOrder.status !== 'Scheduled' && '—'}
                                             </Stack>
@@ -428,10 +446,10 @@ export function WorkOrdersPage() {
                 )}
             </Stack>
 
-            <WorkOrderFormDialog 
+            <WorkOrderFormDialog
                 onClose={() => setIsFormOpen(false)}
                 onSaved={handleWorkOrderSaved}
-                onSubmit={input => 
+                onSubmit={input =>
                     selectedWorkOrder ? updateWorkOrder(selectedWorkOrder.id, input) : createWorkOrder(input)
                 }
                 open={isFormOpen}
@@ -439,11 +457,17 @@ export function WorkOrdersPage() {
                 workOrder={selectedWorkOrder}
             />
 
-            <ScheduleWorkOrderDialog 
+            <ScheduleWorkOrderDialog
                 onClose={() => setWorkOrderToSchedule(null)}
                 onScheduled={handleWorkOrderSaved}
                 open={workOrderToSchedule !== null}
                 workOrder={workOrderToSchedule}
+            />
+
+            <WorkOrderAssignmentsDialog 
+                onClose={() => setWorkOrderToAssign(null)}
+                open={workOrderToAssign !== null}
+                workOrder={workOrderToAssign}
             />
         </>
     );
