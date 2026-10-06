@@ -402,4 +402,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             });
         });
     }
+
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder
+            .Properties<DateTime>()
+            .HaveConversion<UtcDateTimeConverter>();
+    }
 }

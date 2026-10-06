@@ -8,7 +8,7 @@ using ServiceFlow.Api.Services.WorkOrderAssignments;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/work-orders/{workOrderId:guid}/assignments")]
+[Route("api/workorders/{workOrderId:guid}/assignments")]
 [Authorize(Policy = OrganizationPolicies.ManageWorkOrders)]
 public sealed class WorkOrderAssignmentsController(
     IWorkOrderAssignmentService workOrderAssignmentService

@@ -64,6 +64,8 @@ It helps office staff manage customers, service locations, work orders, technici
 - Tenant-scoped Technician directory for dispatchers
 - Multi-technician Work Order assignments
 - Assignment listing and removal for Scheduled Work Orders
+- Dispatcher Work Order management UI with filtering, Draft creation and editing, scheduling, rescheduling, and Technician assignment workflows
+- UTC-preserving EF Core DateTime conversion for consistent local-time display after database reads
 - Technician-only access to assigned Work Orders and job-site details
 - Technician start and completion workflow
 - Status-change history with acting Technician, timestamp, and completion note
