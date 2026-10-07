@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import { getTechnicianWorkOrders, type TechnicianWorkOrder } from "../features/technicianWorkOrders/technicianWorkOrderApi";
 import type { WorkOrderPriority, WorkOrderStatus } from "../features/workOrders/workOrderApi";
-import { Navigate } from "react-router";
-import { Alert, Box, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from "@mui/material";
+import { Link, Navigate } from "react-router";
+import { Alert, Box, Button, Chip, CircularProgress, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Typography } from "@mui/material";
 
 const technicianJobStatuses: WorkOrderStatus[] = ['Scheduled', 'InProgress', 'Completed'];
 
@@ -269,6 +269,14 @@ export function MyJobsPage() {
                                 >
                                     {workOrder.description}
                                 </Typography>
+
+                                <Button
+                                    component={Link}
+                                    to={`/app/my-jobs/${workOrder.id}`}
+                                    variant="outlined"
+                                >
+                                    View job
+                                </Button>
                             </Stack>
                         </Paper>
                     ))}

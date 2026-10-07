@@ -35,3 +35,20 @@ export function getTechnicianWorkOrders(status?: WorkOrderStatus) {
 
     return apiRequest<TechnicianWorkOrder[]>(`/technician/work-order${suffix}`);
 }
+
+export function getTechnicianWorkOrder(workOrderId: string) {
+    return apiRequest<TechnicianWorkOrder>(`/technician/work-order/${workOrderId}`);
+}
+
+export function startTechnicianWorkOrder(workOrderId: string) {
+    return apiRequest<TechnicianWorkOrder>(`/technician/work-order/${workOrderId}/start`, {
+        method: 'POST'
+    });
+}
+
+export function completeTechnicianWorkOrder(workOrderId: string, completionNote: string) {
+    return apiRequest<TechnicianWorkOrder>(`/technician/work-order/${workOrderId}/complete`, {
+        method: 'POST',
+        body: JSON.stringify({ completionNote })
+    });
+}
