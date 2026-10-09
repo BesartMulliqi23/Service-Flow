@@ -69,6 +69,9 @@ It helps office staff manage customers, service locations, work orders, technici
 - Technician-only access to assigned Work Orders and job-site details
 - Technician start and completion workflow
 - Status-change history with acting Technician, timestamp, and completion note
+- Technician workspace UI with assigned-job filtering, job-site details, start, and completion workflows
+- Technician material usage UI for assigned In Progress Work Orders, including quantity, optional cost overrides, line totals, and historical read-only views after completion
+- Technician-scoped active material catalog endpoint for recording job materials
 - Technician scheduling-conflict detection during assignment and rescheduling
 - Tenant-scoped weekly dispatcher calendar for Scheduled and In Progress Work Orders
 - Week navigation and local-time schedule display
