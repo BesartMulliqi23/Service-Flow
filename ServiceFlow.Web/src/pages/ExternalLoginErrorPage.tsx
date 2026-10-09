@@ -1,7 +1,12 @@
 import { Alert, Box, Button, Container, Paper, Stack, Typography } from "@mui/material";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 
 export function ExternalLoginErrorPage() {
+    const [searchParams] = useSearchParams();
+
+    const errorMessage = searchParams.get('message') 
+        ?? 'We could not complete sign-in with the selected provider. Please try again or use email and password.';
+
     return (
         <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
             <Container maxWidth='sm'>
@@ -12,8 +17,7 @@ export function ExternalLoginErrorPage() {
                         </Typography>
                         
                         <Alert severity="error">
-                            We could not complete sign-in with the selected provider. Please
-                            try again or use email and password.
+                            {errorMessage}
                         </Alert>
 
                         <Button component={Link} to='/login' variant="contained">

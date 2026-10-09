@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 
 type Provider = 'Google' | 'Microsoft';
 
-export function ExternalAuthenticationButtons() {
+type ExternalAuthenticationButtonsProps = {
+    invitationToken?: string
+};
+
+export function ExternalAuthenticationButtons({ invitationToken }: ExternalAuthenticationButtonsProps) {
     const [redirectingProvider, setRedirectingProvider] = useState<Provider | null>(null);
 
     useEffect(() => {
@@ -18,6 +22,15 @@ export function ExternalAuthenticationButtons() {
 
     function beginExternalLogin(provider: Provider) {
         setRedirectingProvider(provider);
+
+        if (invitationToken) {
+            const query = new URLSearchParams({ token: invitationToken });
+
+            window.location.assign(`/api/auth/external/${provider}/invitation?${query.toString()}`);
+
+            return;
+        }
+        
         window.location.assign(`/api/auth/external/${provider}`);
     }
 

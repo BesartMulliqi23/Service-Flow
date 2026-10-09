@@ -18,6 +18,9 @@ import { ServiceLocationsPage } from "./pages/ServiceLocationsPage"
 import { WorkOrdersPage } from "./pages/WorkOrdersPage"
 import { MyJobsPage } from "./pages/MyJobsPage"
 import { TechnicianJobDetailsPage } from "./pages/TechnicianJobDetailsPage"
+import { RoleProtectedRoute } from "./components/RoleProtectedRoute"
+import { TeamPage } from "./pages/TeamPage"
+import { AcceptInvitationPage } from "./pages/AcceptInvitationPage"
 
 function App() {
   return (
@@ -34,6 +37,8 @@ function App() {
         <Route path="/login/error" element={<ExternalLoginErrorPage />} />
         <Route path="/onboarding/external" element={<ExternalOnboardingPage />} />
 
+        <Route path='/invitations/accept' element={<AcceptInvitationPage />} />
+
         <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppLayout />}>
                 <Route index element={<DashboardPage />} />
@@ -43,6 +48,10 @@ function App() {
                 <Route path="work-orders" element={<WorkOrdersPage />} />
                 <Route path="my-jobs" element={<MyJobsPage />} />
                 <Route path="my-jobs/:workOrderId" element={<TechnicianJobDetailsPage />} />
+
+                <Route element={<RoleProtectedRoute allowedRoles={['Owner']} />}>
+                    <Route path='team' element={<TeamPage />} />
+                </Route>
             </Route>
         </Route>
         

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Invitations;
@@ -27,18 +28,25 @@ public sealed class ExternalAuthService(
     private readonly FrontendOptions _frontendOptions = frontendOptions.Value;
 
     private string SuccessRedirect => $"{_frontendOptions.BaseUrl}/login/success";
-    private string FailureRedirect => $"{_frontendOptions.BaseUrl}/login/error";
+    private string GetFailureRedirect(string message)
+    {
+        return QueryHelpers.AddQueryString(
+            $"{_frontendOptions.BaseUrl}/login/error",
+            "message",
+            message
+        );
+    }
     private string ExternalOnboardingRedirect => $"{_frontendOptions.BaseUrl}/onboarding/external";
 
     public AuthenticationProperties Challenge(
-        string provider, 
+        string provider,
         string redirectUri,
         IDictionary<string, string?>? items = null
     )
     {
         if (!SupportedProviders.Contains(provider))
         {
-            throw new ArgumentException($"Unsupported authentication provider '{provider}'.", nameof(provider)); 
+            throw new ArgumentException($"Unsupported authentication provider '{provider}'.", nameof(provider));
         }
 
         var properties = signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUri);
@@ -61,9 +69,26 @@ public sealed class ExternalAuthService(
         if (info is null)
         {
             return Failure(
-                ExternalAuthenticationStatus.AuthenticationFailed, 
+                ExternalAuthenticationStatus.AuthenticationFailed,
                 "External login information could not be retrieved."
             );
+        }
+
+        var flow = GetAuthenticationFlow(info);
+
+        if (string.Equals(flow, "invitation", StringComparison.OrdinalIgnoreCase))
+        {
+            var invitationEmail = GetRequiredEmail(info);
+
+            if (invitationEmail is null)
+            {
+                return Failure(
+                    ExternalAuthenticationStatus.MissingEmail,
+                    "The external provider did not supply an email address."
+                );
+            }
+
+            return await HandleInvitationFlowAsync(info, invitationEmail, cancellationToken);
         }
 
         var existingUserResult = await SignInExistingExternalUserAsync(info);
@@ -144,8 +169,8 @@ public sealed class ExternalAuthService(
     private async Task<ExternalAuthenticationResult?> SignInExistingExternalUserAsync(ExternalLoginInfo info)
     {
         var result = await signInManager.ExternalLoginSignInAsync(
-            info.LoginProvider, 
-            info.ProviderKey, 
+            info.LoginProvider,
+            info.ProviderKey,
             isPersistent: false,
             bypassTwoFactor: false
         );
@@ -158,7 +183,7 @@ public sealed class ExternalAuthService(
         return Success();
     }
 
-    private static string? GetRequiredEmail(ExternalLoginInfo info) 
+    private static string? GetRequiredEmail(ExternalLoginInfo info)
     {
         return info.Principal.FindFirstValue(ClaimTypes.Email);
     }
@@ -183,7 +208,7 @@ public sealed class ExternalAuthService(
         await signInManager.SignInAsync(user, isPersistent: false);
 
         return Success();
-    }    
+    }
 
     private async Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(
         ExternalLoginInfo info,
@@ -191,14 +216,8 @@ public sealed class ExternalAuthService(
         CancellationToken cancellationToken
     )
     {
-        string? flow = null;
-        info.AuthenticationProperties?.Items.TryGetValue("flow", out flow);
-
-        if (string.Equals(flow, "invitation", StringComparison.OrdinalIgnoreCase))
-        {
-            return await HandleInvitationFlowAsync(info, email, cancellationToken);
-        }
-
+        var flow = GetAuthenticationFlow(info);
+        
         if (string.Equals(flow, "onboarding", StringComparison.OrdinalIgnoreCase))
         {
             return HandleOnboardingFlow();
@@ -211,7 +230,7 @@ public sealed class ExternalAuthService(
     }
 
     private async Task<ExternalAuthenticationResult> HandleInvitationFlowAsync(
-        ExternalLoginInfo info, 
+        ExternalLoginInfo info,
         string email,
         CancellationToken cancellationToken
     )
@@ -245,6 +264,26 @@ public sealed class ExternalAuthService(
             );
         }
 
+        var existingExternalUser = await userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+
+        if (existingExternalUser is not null)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "This invitation can only be accepted by a new ServiceFlow account."
+            );
+        }
+
+        var existingEmailUser = await userManager.FindByEmailAsync(email);
+
+        if (existingEmailUser is not null)
+        {
+            return Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "This invitation can only be accepted by a new ServiceFlow account."
+            );
+        }
+
         var result = await invitationService.CompleteExternalInvitationAsync(invitation, info, cancellationToken);
 
         if (!result.Succeeded)
@@ -268,6 +307,15 @@ public sealed class ExternalAuthService(
         );
     }
 
+    private static string? GetAuthenticationFlow(ExternalLoginInfo info)
+    {
+        string? flow = null;
+
+        info.AuthenticationProperties?.Items.TryGetValue("flow", out flow);
+
+        return flow;
+    }
+
     private ExternalAuthenticationResult Success()
     {
         return new ExternalAuthenticationResult(ExternalAuthenticationStatus.Success, SuccessRedirect);
@@ -275,6 +323,6 @@ public sealed class ExternalAuthService(
 
     private ExternalAuthenticationResult Failure(ExternalAuthenticationStatus status, string message)
     {
-        return new ExternalAuthenticationResult(status, FailureRedirect, message);
+        return new ExternalAuthenticationResult(status, GetFailureRedirect(message), message);
     }
 }
