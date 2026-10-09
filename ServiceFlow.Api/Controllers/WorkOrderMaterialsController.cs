@@ -8,7 +8,7 @@ using ServiceFlow.Api.Services.Materials;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/work-orders/{workOrderId:guid}/materials")]
+[Route("api/workorders/{workOrderId:guid}/materials")]
 [Authorize(Policy = OrganizationPolicies.ManageWorkOrderMaterials)]
 public sealed class WorkOrderMaterialsController(
     IWorkOrderMaterialService workOrderMaterialService
@@ -207,7 +207,7 @@ public sealed class WorkOrderMaterialsController(
         {
             errors["quantity"] = ["A quantity is required."];
         }
-        else if (quantity.Value < 0)
+        else if (quantity.Value <= 0)
         {
             errors["quantity"] = ["Quantity must be greater than zero."];
         }

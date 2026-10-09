@@ -15,6 +15,8 @@ export function AppLayout() {
 
     const canManageCustomers = user?.roles.some(role => ['Owner', 'Manager', 'Dispatcher'].includes(role)) ?? false;
 
+    const canExecuteAssignedWork = user?.roles.includes('Technician') ?? false;
+
     async function handleLogout() {
         setIsLoggingOut(true);
 
@@ -64,6 +66,21 @@ export function AppLayout() {
                             >
                                 Dashboard
                             </Button>
+
+                            {canExecuteAssignedWork && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/my-jobs'
+                                    variant={
+                                        location.pathname === '/app/my-jobs'
+                                            ? 'outlined'
+                                            : 'text'
+                                    }
+                                >
+                                    My jobs
+                                </Button>
+                            )}
 
                             {canManageCustomers && (
                                 <Button

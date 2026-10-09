@@ -16,6 +16,8 @@ import { SchedulePage } from "./pages/SchedulePage"
 import { CustomersPage } from "./pages/CustomersPage"
 import { ServiceLocationsPage } from "./pages/ServiceLocationsPage"
 import { WorkOrdersPage } from "./pages/WorkOrdersPage"
+import { MyJobsPage } from "./pages/MyJobsPage"
+import { TechnicianJobDetailsPage } from "./pages/TechnicianJobDetailsPage"
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
                 <Route path="customers" element={<CustomersPage />} />
                 <Route path="service-locations" element={<ServiceLocationsPage />} />
                 <Route path="work-orders" element={<WorkOrdersPage />} />
+                <Route path="my-jobs" element={<MyJobsPage />} />
+                <Route path="my-jobs/:workOrderId" element={<TechnicianJobDetailsPage />} />
             </Route>
         </Route>
         
