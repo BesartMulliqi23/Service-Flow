@@ -29,13 +29,13 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ### Organization invitations
 
-- Invitation creation for organization owners
+- Owner-only Team page for sending invitations
 - Secure random invitation tokens
 - Invitation email delivery through SMTP
 - Invitation expiration and acceptance validation
-- Local/password-based invitation acceptance
-- Google invitation acceptance
-- Microsoft invitation acceptance
+- Password-based invitation acceptance UI
+- Google and Microsoft invitation acceptance UI
+- Provider-email verification against the invitation recipient
 - Invited-role assignment during account creation
 - Duplicate invitation replacement for the same organization and email address
 
@@ -200,6 +200,19 @@ cd .\ServiceFlow.Web
 npm install
 npm run dev
 ```
+
+### 6. Test organization invitations
+
+1. Sign in as an Owner.
+2. Open the **Team** page.
+3. Send an invitation to a test email address.
+4. Open Mailpit at `http://localhost:8025`.
+5. Open the invitation email and follow its link.
+6. Accept the invitation with either:
+   - a new password-based account; or
+   - Google or Microsoft, using the invited email address.
+
+Invitation links expire after seven days and cannot be reused after acceptance.
 
 ## Repository structure
 
