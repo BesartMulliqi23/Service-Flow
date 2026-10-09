@@ -20,6 +20,7 @@ import { MyJobsPage } from "./pages/MyJobsPage"
 import { TechnicianJobDetailsPage } from "./pages/TechnicianJobDetailsPage"
 import { RoleProtectedRoute } from "./components/RoleProtectedRoute"
 import { TeamPage } from "./pages/TeamPage"
+import { AcceptInvitationPage } from "./pages/AcceptInvitationPage"
 
 function App() {
   return (
@@ -35,6 +36,8 @@ function App() {
         <Route path="/login/success" element={<ExternalLoginSuccessPage />} />
         <Route path="/login/error" element={<ExternalLoginErrorPage />} />
         <Route path="/onboarding/external" element={<ExternalOnboardingPage />} />
+
+        <Route path='/invitations/accept' element={<AcceptInvitationPage />} />
 
         <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppLayout />}>
