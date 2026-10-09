@@ -17,6 +17,8 @@ export function AppLayout() {
 
     const canExecuteAssignedWork = user?.roles.includes('Technician') ?? false;
 
+    const canManageMembers = user?.roles.includes('Owner') ?? false;
+
     async function handleLogout() {
         setIsLoggingOut(true);
 
@@ -135,6 +137,17 @@ export function AppLayout() {
                                     variant={location.pathname === '/app/schedule' ? 'outlined' : 'text'}
                                 >
                                     Schedule
+                                </Button>
+                            )}
+
+                            {canManageMembers && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/team'
+                                    variant={location.pathname === '/app/team' ? 'outlined' : 'text'}
+                                >
+                                    Team
                                 </Button>
                             )}
                         </Stack>
