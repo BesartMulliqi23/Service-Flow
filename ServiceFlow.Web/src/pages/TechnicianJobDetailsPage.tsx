@@ -7,6 +7,7 @@ import { ApiError } from "../api/apiClient";
 import { Alert, Box, Button, Chip, CircularProgress, Divider, Paper, Stack, Typography } from "@mui/material";
 import { ArrowBackRounded, PlayArrowRounded } from "@mui/icons-material";
 import { CompleteWorkOrderDialog } from "../features/technicianWorkOrders/CompleteWorkOrderDialog";
+import { WorkOrderMaterialsSection } from "../features/technicianMaterials/WorkOrderMaterialsSection";
 
 function getPriorityColor(priority: WorkOrderPriority) {
     switch (priority) {
@@ -302,6 +303,13 @@ export function TechnicianJobDetailsPage() {
                                 </Box>
                             </Stack>
                         </Paper>
+
+                        {(workOrder.status === 'InProgress' || workOrder.status === 'Completed') && (
+                            <WorkOrderMaterialsSection
+                                canEdit={workOrder.status === 'InProgress'}
+                                workOrderId={workOrder.id}
+                            />
+                        )}
                     </>
                 ) : (
                     <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -310,7 +318,7 @@ export function TechnicianJobDetailsPage() {
                         </Typography>
 
                         <Typography color='text.secondary' sx={{ mt: 1 }}>
-                             This job may no longer be assigned to you.
+                            This job may no longer be assigned to you.
                         </Typography>
                     </Paper>
                 )}
