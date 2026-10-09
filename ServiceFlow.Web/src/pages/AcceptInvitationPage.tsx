@@ -3,10 +3,11 @@ import { useAuth } from "../features/auth/AuthContext";
 import { useEffect, useState, type ReactNode, type SubmitEvent } from "react";
 import { completeInvitation, getInvitation, type InvitationDetails } from "../features/invitations/invitationApi";
 import { ApiError } from "../api/apiClient";
-import { Alert, Box, Button, CircularProgress, Container, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, CircularProgress, Container, Divider, Paper, Stack, TextField, Typography } from "@mui/material";
 import { CheckCircleRounded, PersonAddRounded } from "@mui/icons-material";
 import { PasswordField } from "../components/PasswordField";
 import { PasswordRequirements } from "../components/PasswordRequirements";
+import { ExternalAuthenticationButtons } from "../components/ExternalAuthenticationButtons";
 
 export function AcceptInvitationPage() {
     const [searchParams] = useSearchParams();
@@ -217,6 +218,16 @@ export function AcceptInvitationPage() {
                 >
                     Create account and join team
                 </Button>
+
+                <Divider>or</Divider>
+
+                <Stack spacing={1.5}>
+                    <Typography align="center" color="text.secondary" variant="body2">
+                        Use an existing Google or Microsoft account instead.
+                    </Typography>
+
+                    <ExternalAuthenticationButtons invitationToken={token ?? undefined} />
+                </Stack>
 
                 <Typography align="center" color='text.secondary' variant='body2'>
                     Already have an account?{' '}
