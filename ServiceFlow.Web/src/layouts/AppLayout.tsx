@@ -19,6 +19,8 @@ export function AppLayout() {
 
     const canManageMembers = user?.roles.includes('Owner') ?? false;
 
+    const canManageMaterials = user?.roles.some(role => ['Owner', 'Manager', 'Dispatcher'].includes(role)) ?? false;
+
     async function handleLogout() {
         setIsLoggingOut(true);
 
@@ -126,6 +128,21 @@ export function AppLayout() {
                                     }
                                 >
                                     Work orders
+                                </Button>
+                            )}
+
+                            {canManageMaterials && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/materials'
+                                    variant={
+                                        location.pathname === '/app/materials'
+                                            ? 'outlined'
+                                            : 'text'
+                                    }
+                                >
+                                    Materials
                                 </Button>
                             )}
 
