@@ -78,6 +78,7 @@ It helps office staff manage customers, service locations, work orders, technici
 - Server-side technician filtering
 - Work Order details drawer with customer, location, schedule, priority, status, and assigned technicians
 - Tenant-scoped material catalog with SKU, unit-of-measure, default cost, and deactivation
+- Material catalog management UI for Owners, Managers, and Dispatchers, with active/inactive filtering, create, edit, and deactivation workflows
 - Work Order material usage tracking with quantity, cost snapshots, calculated line totals, and duplicate-line protection
 - Technician material recording for assigned In Progress Work Orders
 

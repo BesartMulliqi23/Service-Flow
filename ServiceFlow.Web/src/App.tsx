@@ -21,6 +21,7 @@ import { TechnicianJobDetailsPage } from "./pages/TechnicianJobDetailsPage"
 import { RoleProtectedRoute } from "./components/RoleProtectedRoute"
 import { TeamPage } from "./pages/TeamPage"
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage"
+import { MaterialsPage } from "./pages/MaterialsPage"
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
                 <Route path="work-orders" element={<WorkOrdersPage />} />
                 <Route path="my-jobs" element={<MyJobsPage />} />
                 <Route path="my-jobs/:workOrderId" element={<TechnicianJobDetailsPage />} />
+                <Route path="materials" element={<MaterialsPage />} />
 
                 <Route element={<RoleProtectedRoute allowedRoles={['Owner']} />}>
                     <Route path='team' element={<TeamPage />} />
