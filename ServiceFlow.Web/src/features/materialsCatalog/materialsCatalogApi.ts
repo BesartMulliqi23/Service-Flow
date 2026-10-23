@@ -39,3 +39,9 @@ export function updateMaterial(materialId: string, input: MaterialInput) {
         body: JSON.stringify(input)
     });
 }
+
+export function deactivateMaterial(materialId: string) {
+    return apiRequest<void>(`/materials/${materialId}/deactivate`, {
+        method: 'POST'
+    });
+}

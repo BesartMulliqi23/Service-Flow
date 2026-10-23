@@ -3,8 +3,9 @@ import { useAuth } from "../features/auth/AuthContext";
 import { getMaterials, type Material } from "../features/materialsCatalog/materialsCatalogApi";
 import { Navigate } from "react-router";
 import { Alert, Box, Button, Chip, CircularProgress, FormControlLabel, IconButton, Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { AddRounded, EditRounded } from "@mui/icons-material";
+import { AddRounded, EditRounded, PersonOffRounded } from "@mui/icons-material";
 import { MaterialFormDialog } from "../features/materialsCatalog/MaterialFormDialog";
+import { MaterialDeactivateDialog } from "../features/materialsCatalog/MaterialDeactivateDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -31,6 +32,7 @@ export function MaterialsPage() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+    const [materialToDeactivate, setMaterialToDeactivate] = useState<Material | null>(null);
 
     const canManageMaterials = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -80,6 +82,20 @@ export function MaterialsPage() {
                 ...materialsWithoutSavedMaterial,
                 savedMaterial
             ]);
+        });
+    }
+
+    function handleMaterialDeactivated(materialId: string) {
+        setMaterials(currentMaterials => {
+            if (!includeInactive) {
+                return currentMaterials.filter(material => material.id !== materialId);
+            }
+
+            return sortMaterials(currentMaterials.map(material =>
+                material.id === materialId
+                    ? { ...material, isActive: false }
+                    : material
+            ));
         });
     }
 
@@ -208,6 +224,18 @@ export function MaterialsPage() {
                                                     <EditRounded />
                                                 </IconButton>
                                             </Tooltip>
+
+                                            {material.isActive && (
+                                                <Tooltip title='Deactivate material'>
+                                                    <IconButton
+                                                        aria-label={`Deactivate ${material.name}`}
+                                                        onClick={() => setMaterialToDeactivate(material)}
+                                                        color="warning"
+                                                    >
+                                                        <PersonOffRounded />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -220,8 +248,15 @@ export function MaterialsPage() {
             <MaterialFormDialog
                 material={selectedMaterial}
                 onClose={() => setIsFormOpen(false)}
-                onSaved={() => void loadMaterials()}
+                onSaved={handleMaterialSaved}
                 open={isFormOpen}
+            />
+
+            <MaterialDeactivateDialog
+                material={materialToDeactivate}
+                onClose={() => setMaterialToDeactivate(null)}
+                onDeactivated={handleMaterialDeactivated}
+                open={materialToDeactivate !== null}
             />
         </>
     );
