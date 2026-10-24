@@ -82,10 +82,18 @@ It helps office staff manage customers, service locations, work orders, technici
 - Work Order material usage tracking with quantity, cost snapshots, calculated line totals, and duplicate-line protection
 - Technician material recording for assigned In Progress Work Orders
 
+## Operational dashboard
+
+- Tenant-scoped operational summary endpoint for Owners and Managers
+- Work Order status counts and visual status distribution
+- Recently completed Work Order count
+- Recently recorded material-cost total
+- Upcoming Scheduled Work Orders for the next seven days
+- Dispatcher and Technician role-specific dashboard actions
+
 ## Roadmap
 
 - Photos, attachments, and general Technician notes
-- Dashboard and operational reporting
 - Notifications and reminders
 - Audit logging
 - Search, filtering, and pagination
