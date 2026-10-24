@@ -5,7 +5,7 @@ export type DashboardUpcomingWorkOrder  = {
     title: string,
     priority: 'Low' | 'Normal' | 'High' | 'Urgent',
     scheduledStartUtc: string,
-    scheduledEndtUtc: string,
+    scheduledEndUtc: string,
     customerName: string,
     serviceLocationName: string,
     technicianNames: string[]
