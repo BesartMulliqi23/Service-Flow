@@ -500,6 +500,8 @@ namespace ServiceFlow.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrganizationId", "CompletedUtc");
+
                     b.HasIndex("ServiceLocationId", "OrganizationId");
 
                     b.HasIndex("OrganizationId", "Status", "ScheduledStartUtc");
@@ -574,6 +576,8 @@ namespace ServiceFlow.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId", "AddedUtc");
 
                     b.HasIndex("WorkOrderId", "OrganizationId");
 

@@ -247,6 +247,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 workOrder.ScheduledStartUtc
             });
 
+            entity.HasIndex(workOrder => new
+            {
+                workOrder.OrganizationId,
+                workOrder.CompletedUtc 
+            });
+
             entity.HasAlternateKey(workOrder => new
             {
                 workOrder.Id,
@@ -305,6 +311,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 workOrderMaterial.OrganizationId,
                 workOrderMaterial.WorkOrderId,
                 workOrderMaterial.MaterialId
+            });
+
+            entity.HasIndex(workOrderMaterial => new
+            {
+                workOrderMaterial.OrganizationId,
+                workOrderMaterial.AddedUtc
             });
         });
 
