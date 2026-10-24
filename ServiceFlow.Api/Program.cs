@@ -8,6 +8,7 @@ using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Calendar;
 using ServiceFlow.Api.Services.Customers;
+using ServiceFlow.Api.Services.Dashboard;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.Materials;
@@ -69,6 +70,7 @@ builder.Services.AddScoped<ITechnicianScheduleConflictService, TechnicianSchedul
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IMaterialCatalogService, MaterialCatalogService>();
 builder.Services.AddScoped<IWorkOrderMaterialService, WorkOrderMaterialService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddAuthorization(options =>
 {
