@@ -17,3 +17,7 @@ export function createTechnicianWorkOrderNote(workOrderId: string, content: stri
         body: JSON.stringify({ content })
     });
 }
+
+export function getWorkOrderNotes(workOrderId: string) {
+    return apiRequest<WorkOrderNote[]>(`/workorders/${workOrderId}/notes`);
+}
