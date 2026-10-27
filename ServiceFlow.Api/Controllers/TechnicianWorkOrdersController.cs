@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.TechnicianWorkOrders;
+using ServiceFlow.Api.Contracts.WorkOrderNotes;
 using ServiceFlow.Api.Models;
 using ServiceFlow.Api.Services.TechnicianWorkOrders;
+using ServiceFlow.Api.Services.WorkOrderNotes;
 
 namespace ServiceFlow.Api.Controllers;
 
@@ -11,7 +13,8 @@ namespace ServiceFlow.Api.Controllers;
 [Route("api/technician/work-order")]
 [Authorize(Policy = OrganizationPolicies.ExecuteAssignedWork)]
 public sealed class TechnicianWorkOrdersController(
-    ITechnicianWorkOrderService technicianWorkOrderService
+    ITechnicianWorkOrderService technicianWorkOrderService,
+    IWorkOrderNoteService workOrderNoteService
 ) : ControllerBase
 {
     [HttpGet]
@@ -108,6 +111,86 @@ public sealed class TechnicianWorkOrdersController(
         }
 
         throw new InvalidOperationException($"Unexpected result status: {result.Status}");
+    }
+
+    [HttpGet("{id:guid}/notes")]
+    [ProducesResponseType(typeof(IReadOnlyList<WorkOrderNoteResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<WorkOrderNoteResponse>>> GetNotes(
+        Guid id,
+        CancellationToken cancellationToken
+    )
+    {
+        var notes = await workOrderNoteService.GetForTechnicianAsync(id, cancellationToken);
+
+        return notes is null ? NotFound() : Ok(notes);
+    }
+
+    [HttpPost("{id:guid}/notes")]
+    [ProducesResponseType(typeof(WorkOrderNoteResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<WorkOrderNoteResponse>> CreateNote(
+        Guid id,
+        CreateWorkOrderNoteRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var errors = ValidateNoteInput(request.Content);
+
+        if (errors.Count > 0)
+        {
+            return ValidationProblem(new ValidationProblemDetails(errors));
+        }
+
+        var result = await workOrderNoteService.CreateForTechnicianAsync(
+            id, 
+            request.Content!.Trim(), 
+            cancellationToken
+        );
+
+        if (result.Status == WorkOrderNoteMutationStatus.Success)
+        {
+            return CreatedAtAction(
+                nameof(GetNotes),
+                new { id  },
+                result.Note
+            );
+        }
+
+        if (result.Status == WorkOrderNoteMutationStatus.WorkOrderNotFound)
+        {
+            return NotFound();
+        }
+
+        if (result.Status == WorkOrderNoteMutationStatus.WorkOrderNotInProgress)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Work Order cannot accept notes.",
+                Detail = "Technicians can add job notes only while a Work Order is In Progress.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        throw new InvalidOperationException($"Unexpected result status: {result.Status}");
+    }
+
+    private static Dictionary<string, string[]> ValidateNoteInput(string? content)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            errors["content"] = ["A job note is required."];
+        }
+        else if (content.Trim().Length > 4000)
+        {
+            errors["content"] = ["A job note cannot exceed 4000 characters."];
+        }
+
+        return errors;
     }
 
     private static Dictionary<string, string[]> ValidateCompletionInput(string? completionNote)
