@@ -2,12 +2,14 @@ import { Link, Navigate, useParams } from "react-router";
 import { useAuth } from "../features/auth/AuthContext";
 import { getTechnicianWorkOrder, startTechnicianWorkOrder, type TechnicianWorkOrder } from "../features/technicianWorkOrders/technicianWorkOrderApi";
 import type { WorkOrderPriority, WorkOrderStatus } from "../features/workOrders/workOrderApi";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "../api/apiClient";
 import { Alert, Box, Button, Chip, CircularProgress, Divider, Paper, Stack, Typography } from "@mui/material";
 import { ArrowBackRounded, PlayArrowRounded } from "@mui/icons-material";
 import { CompleteWorkOrderDialog } from "../features/technicianWorkOrders/CompleteWorkOrderDialog";
 import { WorkOrderMaterialsSection } from "../features/technicianMaterials/WorkOrderMaterialsSection";
+import { createTechnicianWorkOrderNote, getTechnicianWorkOrderNotes } from "../features/workOrderNotes/workOrderNotesApi";
+import { WorkOrderNotesSection } from "../features/workOrderNotes/WorkOrderNotesSection";
 
 function getPriorityColor(priority: WorkOrderPriority) {
     switch (priority) {
@@ -75,6 +77,22 @@ export function TechnicianJobDetailsPage() {
     const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
 
     const canExecuteAssignedWork = user?.roles.includes('Technician') ?? false;
+
+    const loadNotes = useCallback(() => {
+        if (!workOrderId) {
+            return Promise.resolve([]);
+        }
+
+        return getTechnicianWorkOrderNotes(workOrderId);
+    }, [workOrderId]);
+
+    const addNote = useCallback((content: string) => {
+        if (!workOrderId) {
+            return Promise.reject(new Error('The Work Order ID is unavailable.'));
+        }
+
+        return createTechnicianWorkOrderNote(workOrderId, content);
+    }, [workOrderId]);
 
     useEffect(() => {
         if (!workOrderId) {
@@ -303,6 +321,18 @@ export function TechnicianJobDetailsPage() {
                                 </Box>
                             </Stack>
                         </Paper>
+
+                        <WorkOrderNotesSection
+                            canAddNote={workOrder.status === 'InProgress'}
+                            emptyMessage="No job notes have been recorded yet."
+                            loadNotes={loadNotes}
+                            onAddNote={addNote}
+                            readOnlyMessage={
+                                workOrder.status === 'Scheduled'
+                                    ? 'Start work before adding job notes.'
+                                    : 'This Work Order is complete. Job notes are now read-only.'
+                            }
+                        />
 
                         {(workOrder.status === 'InProgress' || workOrder.status === 'Completed') && (
                             <WorkOrderMaterialsSection

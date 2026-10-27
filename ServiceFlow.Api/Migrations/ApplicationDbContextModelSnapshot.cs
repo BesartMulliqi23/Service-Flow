@@ -586,6 +586,41 @@ namespace ServiceFlow.Api.Migrations
                     b.ToTable("WorkOrderMaterials");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId", "OrganizationId");
+
+                    b.HasIndex("WorkOrderId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId", "WorkOrderId", "CreatedUtc");
+
+                    b.ToTable("WorkOrderNotes");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -787,6 +822,27 @@ namespace ServiceFlow.Api.Migrations
                     b.Navigation("WorkOrder");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderNote", b =>
+                {
+                    b.HasOne("ServiceFlow.Api.Models.ApplicationUser", "CreatedByUser")
+                        .WithMany("WorkOrderNotes")
+                        .HasForeignKey("CreatedByUserId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ServiceFlow.Api.Models.WorkOrder", "WorkOrder")
+                        .WithMany("Notes")
+                        .HasForeignKey("WorkOrderId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("WorkOrder");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderStatusChange", b =>
                 {
                     b.HasOne("ServiceFlow.Api.Models.ApplicationUser", "ChangedByUser")
@@ -812,6 +868,8 @@ namespace ServiceFlow.Api.Migrations
                 {
                     b.Navigation("WorkOrderAssignments");
 
+                    b.Navigation("WorkOrderNotes");
+
                     b.Navigation("WorkOrderStatusChanges");
                 });
 
@@ -830,6 +888,8 @@ namespace ServiceFlow.Api.Migrations
                     b.Navigation("Assignments");
 
                     b.Navigation("Materials");
+
+                    b.Navigation("Notes");
 
                     b.Navigation("StatusHistory");
                 });

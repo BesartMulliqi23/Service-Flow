@@ -16,6 +16,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkOrderStatusChange> WorkOrderStatusChanges => Set<WorkOrderStatusChange>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<WorkOrderMaterial> WorkOrderMaterials => Set<WorkOrderMaterial>();
+    public DbSet<WorkOrderNote> WorkOrderNotes => Set<WorkOrderNote>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -411,6 +412,48 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 statusChange.OrganizationId,
                 statusChange.WorkOrderId,
                 statusChange.ChangedUtc
+            });
+        });
+
+        builder.Entity<WorkOrderNote>(entity =>
+        {
+            entity.Property(note => note.Content)
+                .HasMaxLength(4000)
+                .IsRequired();
+
+            entity.HasOne(note => note.WorkOrder)
+                .WithMany(workOrder => workOrder.Notes)
+                .HasForeignKey(note => new
+                {
+                    note.WorkOrderId,
+                    note.OrganizationId
+                })
+                .HasPrincipalKey(workOrder => new
+                {
+                    workOrder.Id,
+                    workOrder.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(note => note.CreatedByUser)
+                .WithMany(user => user.WorkOrderNotes)
+                .HasForeignKey(note => new
+                {
+                    note.CreatedByUserId,
+                    note.OrganizationId
+                })
+                .HasPrincipalKey(user => new
+                {
+                    user.Id,
+                    user.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(note => new
+            {
+                note.OrganizationId,
+                note.WorkOrderId,
+                note.CreatedUtc
             });
         });
     }

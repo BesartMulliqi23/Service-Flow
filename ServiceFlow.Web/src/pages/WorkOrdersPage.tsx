@@ -4,10 +4,11 @@ import { createWorkOrder, getWorkOrders, updateWorkOrder, type WorkOrder, type W
 import { getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
 import { Navigate } from "react-router";
 import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { AddRounded, EditRounded, EventRounded, GroupAddRounded } from "@mui/icons-material";
+import { AddRounded, EditRounded, EventRounded, GroupAddRounded, NotesRounded } from "@mui/icons-material";
 import { WorkOrderFormDialog } from "../features/workOrders/WorkOrderFormDialog";
 import { ScheduleWorkOrderDialog } from "../features/workOrders/ScheduleWorkOrderDialog";
 import { WorkOrderAssignmentsDialog } from "../features/workOrders/WorkOrderAssignmentsDialog";
+import { WorkOrderNotesDialog } from "../features/workOrderNotes/WorkOrderNotesDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -90,6 +91,7 @@ export function WorkOrdersPage() {
     const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
     const [workOrderToSchedule, setWorkOrderToSchedule] = useState<WorkOrder | null>(null);
     const [workOrderToAssign, setWorkOrderToAssign] = useState<WorkOrder | null>(null);
+    const [workOrderToViewNotes, setWorkOrderToViewNotes] = useState<WorkOrder | null>(null);
 
     const canManageWorkOrders = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -395,6 +397,15 @@ export function WorkOrdersPage() {
                                                 spacing={0.5}
                                                 sx={{ justifyContent: 'flex-end' }}
                                             >
+                                                <Tooltip title='View job notes'>
+                                                    <IconButton
+                                                        aria-label={`View notes for ${workOrder.title}`}
+                                                        onClick={() => setWorkOrderToViewNotes(workOrder)}
+                                                    >
+                                                        <NotesRounded />
+                                                    </IconButton>
+                                                </Tooltip>
+
                                                 {workOrder.status === 'Draft' && (
                                                     <Tooltip title='Edit draft work order'>
                                                         <IconButton
@@ -433,9 +444,6 @@ export function WorkOrdersPage() {
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}
-
-                                                {workOrder.status !== 'Draft'
-                                                    && workOrder.status !== 'Scheduled' && '—'}
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -468,6 +476,12 @@ export function WorkOrdersPage() {
                 onClose={() => setWorkOrderToAssign(null)}
                 open={workOrderToAssign !== null}
                 workOrder={workOrderToAssign}
+            />
+
+            <WorkOrderNotesDialog
+                onClose={() => setWorkOrderToViewNotes(null)}
+                open={workOrderToViewNotes !== null}
+                workOrder={workOrderToViewNotes}
             />
         </>
     );

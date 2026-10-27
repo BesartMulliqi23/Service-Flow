@@ -81,6 +81,9 @@ It helps office staff manage customers, service locations, work orders, technici
 - Material catalog management UI for Owners, Managers, and Dispatchers, with active/inactive filtering, create, edit, and deactivation workflows
 - Work Order material usage tracking with quantity, cost snapshots, calculated line totals, and duplicate-line protection
 - Technician material recording for assigned In Progress Work Orders
+- Append-only Technician job notes for assigned In Progress Work Orders
+- Tenant-scoped note history with author and timestamp details
+- Read-only Work Order note-history view for Owners, Managers, and Dispatchers
 
 ## Operational dashboard
 
@@ -93,7 +96,7 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ## Roadmap
 
-- Photos, attachments, and general Technician notes
+- Photos and attachments for Work Orders
 - Notifications and reminders
 - Audit logging
 - Search, filtering, and pagination

@@ -18,6 +18,7 @@ using ServiceFlow.Api.Services.ServiceLocations;
 using ServiceFlow.Api.Services.Technicians;
 using ServiceFlow.Api.Services.TechnicianWorkOrders;
 using ServiceFlow.Api.Services.WorkOrderAssignments;
+using ServiceFlow.Api.Services.WorkOrderNotes;
 using ServiceFlow.Api.Services.WorkOrders;
 using ServiceFlow.Api.Settings;
 
@@ -71,6 +72,7 @@ builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IMaterialCatalogService, MaterialCatalogService>();
 builder.Services.AddScoped<IWorkOrderMaterialService, WorkOrderMaterialService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IWorkOrderNoteService, WorkOrderNoteService>();
 
 builder.Services.AddAuthorization(options =>
 {

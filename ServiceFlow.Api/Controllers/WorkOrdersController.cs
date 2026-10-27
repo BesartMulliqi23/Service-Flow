@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.Scheduling;
+using ServiceFlow.Api.Contracts.WorkOrderNotes;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.WorkOrderNotes;
 using ServiceFlow.Api.Services.WorkOrders;
 
 namespace ServiceFlow.Api.Controllers;
@@ -12,7 +14,8 @@ namespace ServiceFlow.Api.Controllers;
 [Route("api/[controller]")]
 [Authorize(Policy = OrganizationPolicies.ManageWorkOrders)]
 public sealed class WorkOrdersController(
-    IWorkOrderService workOrderService
+    IWorkOrderService workOrderService,
+    IWorkOrderNoteService workOrderNoteService
 ) : ControllerBase
 {
     [HttpPost]
@@ -232,6 +235,19 @@ public sealed class WorkOrdersController(
         }
 
         throw new InvalidOperationException($"Unexpected result status: {result.Status}");
+    }
+
+    [HttpGet("{workOrderId:guid}/notes")]
+    [ProducesResponseType(typeof(IReadOnlyList<WorkOrderNoteResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<WorkOrderNoteResponse>>> GetNotes(
+        Guid workOrderId,
+        CancellationToken cancellationToken
+    )
+    {
+        var notes = await workOrderNoteService.GetForOperationsAsync(workOrderId, cancellationToken);
+
+        return notes is null ? NotFound() : Ok(notes);
     }
 
     private static Dictionary<string, string[]> ValidateWorkOrderInput(
