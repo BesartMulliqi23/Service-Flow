@@ -14,4 +14,6 @@ public sealed class ApplicationUser : IdentityUser
     public ICollection<WorkOrderStatusChange> WorkOrderStatusChanges { get; } = [];
 
     public ICollection<WorkOrderNote> WorkOrderNotes { get; } = [];
+
+    public ICollection<WorkOrderAttachment> WorkOrderAttachments { get; } = [];
 }

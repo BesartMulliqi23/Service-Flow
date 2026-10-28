@@ -22,4 +22,5 @@ public sealed class WorkOrder : IOrganizationOwned
     public ICollection<WorkOrderStatusChange> StatusHistory { get; } = [];
     public ICollection<WorkOrderMaterial> Materials { get; } = [];
     public ICollection<WorkOrderNote> Notes { get; } = [];
+    public ICollection<WorkOrderAttachment> Attachments { get; } = [];
 }

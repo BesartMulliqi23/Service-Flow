@@ -1,6 +1,6 @@
 namespace ServiceFlow.Api.Models;
 
-public sealed class WorkOrderNote
+public sealed class WorkOrderNote : IOrganizationOwned
 {
     public Guid Id { get; set; }
 

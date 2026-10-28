@@ -534,6 +534,64 @@ namespace ServiceFlow.Api.Migrations
                     b.ToTable("WorkOrderAssignments");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CloudinaryAssetId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CloudinaryPublicId")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("CloudinaryResourceType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("UploadedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("WorkOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadedByUserId", "OrganizationId");
+
+                    b.HasIndex("WorkOrderId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId", "WorkOrderId", "CreatedUtc");
+
+                    b.ToTable("WorkOrderAttachments");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderMaterial", b =>
                 {
                     b.Property<Guid>("Id")
@@ -801,6 +859,27 @@ namespace ServiceFlow.Api.Migrations
                     b.Navigation("WorkOrder");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderAttachment", b =>
+                {
+                    b.HasOne("ServiceFlow.Api.Models.ApplicationUser", "UploadedByUser")
+                        .WithMany("WorkOrderAttachments")
+                        .HasForeignKey("UploadedByUserId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServiceFlow.Api.Models.WorkOrder", "WorkOrder")
+                        .WithMany("Attachments")
+                        .HasForeignKey("WorkOrderId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UploadedByUser");
+
+                    b.Navigation("WorkOrder");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderMaterial", b =>
                 {
                     b.HasOne("ServiceFlow.Api.Models.Material", "Material")
@@ -868,6 +947,8 @@ namespace ServiceFlow.Api.Migrations
                 {
                     b.Navigation("WorkOrderAssignments");
 
+                    b.Navigation("WorkOrderAttachments");
+
                     b.Navigation("WorkOrderNotes");
 
                     b.Navigation("WorkOrderStatusChanges");
@@ -886,6 +967,8 @@ namespace ServiceFlow.Api.Migrations
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrder", b =>
                 {
                     b.Navigation("Assignments");
+
+                    b.Navigation("Attachments");
 
                     b.Navigation("Materials");
 

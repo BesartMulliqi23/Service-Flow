@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using CloudinaryDotNet;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -57,6 +58,10 @@ builder.Services.Configure<MicrosoftAuthenticationOptions>(
     builder.Configuration.GetSection(MicrosoftAuthenticationOptions.SectionName)
 );
 
+builder.Services.Configure<CloudinaryOptions>(
+    builder.Configuration.GetSection(CloudinaryOptions.SectionName)
+);
+
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IExternalAuthService, ExternalAuthService>();
 builder.Services.AddScoped<IOrganizationOnboardingService, OrganizationOnboardingService>();
@@ -73,6 +78,34 @@ builder.Services.AddScoped<IMaterialCatalogService, MaterialCatalogService>();
 builder.Services.AddScoped<IWorkOrderMaterialService, WorkOrderMaterialService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IWorkOrderNoteService, WorkOrderNoteService>();
+
+builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
+{
+    var options = serviceProvider
+        .GetRequiredService<IOptions<CloudinaryOptions>>()
+        .Value;
+
+    if (string.IsNullOrWhiteSpace(options.CloudName) ||
+        string.IsNullOrWhiteSpace(options.ApiKey) ||
+        string.IsNullOrWhiteSpace(options.ApiSecret))
+    {
+        throw new InvalidOperationException(
+            "Cloudinary configuration is incomplete. Configure Cloudinary user secrets before starting the API."
+        );
+    }
+
+    var cloudinary = new Cloudinary(
+        new Account(
+            options.CloudName,
+            options.ApiKey,
+            options.ApiKey
+        )
+    );
+
+    cloudinary.Api.Secure = true;
+
+    return cloudinary;
+});
 
 builder.Services.AddAuthorization(options =>
 {
