@@ -19,6 +19,7 @@ using ServiceFlow.Api.Services.ServiceLocations;
 using ServiceFlow.Api.Services.Technicians;
 using ServiceFlow.Api.Services.TechnicianWorkOrders;
 using ServiceFlow.Api.Services.WorkOrderAssignments;
+using ServiceFlow.Api.Services.WorkOrderAttachments;
 using ServiceFlow.Api.Services.WorkOrderNotes;
 using ServiceFlow.Api.Services.WorkOrders;
 using ServiceFlow.Api.Settings;
@@ -78,6 +79,8 @@ builder.Services.AddScoped<IMaterialCatalogService, MaterialCatalogService>();
 builder.Services.AddScoped<IWorkOrderMaterialService, WorkOrderMaterialService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IWorkOrderNoteService, WorkOrderNoteService>();
+builder.Services.AddScoped<IWorkOrderAttachmentStorage, CloudinaryWorkOrderAttachmentStorage>();
+builder.Services.AddScoped<IWorkOrderAttachmentService, WorkOrderAttachmentService>();
 
 builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
 {
@@ -98,7 +101,7 @@ builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
         new Account(
             options.CloudName,
             options.ApiKey,
-            options.ApiKey
+            options.ApiSecret
         )
     );
 

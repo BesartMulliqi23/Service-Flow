@@ -27,7 +27,7 @@ public sealed record WorkOrderAttachmentUpload(
     Guid WorkOrderId,
     string OriginalFileName,
     string FileExtension,
-    Stream Contnet
+    Stream Content
 );
 
 public sealed record StoredWorkOrderAttachment(
