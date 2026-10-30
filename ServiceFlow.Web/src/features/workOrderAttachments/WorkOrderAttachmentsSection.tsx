@@ -1,8 +1,9 @@
-import { DescriptionRounded, ImageRounded, OpenInNewRounded, UploadFileRounded } from "@mui/icons-material";
+import { UploadFileRounded } from "@mui/icons-material";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { getTechnicianAttachmentDownloadUrl, getTechnicianWorkOrderAttachments, uploadTechnicianWorkOrderAttachment, type WorkOrderAttachment } from "./workOrderAttachmentsApi";
 import { ApiError } from "../../api/apiClient";
 import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
+import { WorkOrderAttachmentList } from "./WorkOrderAttachmentList";
 
 type WorkOrderAttachmentsSectionProps = {
     canUpload: boolean,
@@ -19,27 +20,6 @@ const supportedContentTypes = new Set([
     "image/webp",
     "application/pdf"
 ]);
-
-function formatFileSize(fileSizeBytes: number) {
-    if (fileSizeBytes < 1024 * 1024) {
-        return `${Math.ceil(fileSizeBytes / 1024)} KB`
-    }
-
-    return `${(fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function formatTimestamp(value: string) {
-    return new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-    }).format(new Date(value));
-}
-
-function getAttachmentIcon(contentType: string) {
-    return contentType.startsWith('image/')
-        ? <ImageRounded color="primary" />
-        : <DescriptionRounded color="primary" />
-}
 
 export function WorkOrderAttachmentsSection({
     canUpload,
@@ -185,61 +165,12 @@ export function WorkOrderAttachmentsSection({
                     >
                         <CircularProgress aria-label="Loading attachments" />
                     </Box>
-                ) : attachments.length === 0 ? (
-                    <Typography color="text.secondary">
-                        {emptyMessage}
-                    </Typography>
-                ) : (
-                    <Stack spacing={1}>
-                        {attachments.map(attachment => (
-                            <Paper
-                                key={attachment.id}
-                                sx={{
-                                    alignItems: 'center',
-                                    display: 'flex',
-                                    gap: 1.5,
-                                    justifyContent: 'space-between',
-                                    p: 1.5
-                                }}
-                                variant="outlined"
-                            >
-                                <Stack
-                                    direction='row'
-                                    spacing={1.5}
-                                    sx={{ alignItems: 'center', minWidth: 0 }}
-                                >
-                                    {getAttachmentIcon(attachment.contentType)}
-
-                                    <Box sx={{ minWidth: 0 }}>
-                                        <Typography noWrap sx={{ fontWeight: 600 }}>
-                                            {attachment.originalFileName}
-                                        </Typography>
-
-                                        <Typography variant="body2" color="text.secondary">
-                                            {formatFileSize(attachment.fileSizeBytes)}
-                                            {" · "}
-                                            {attachment.uploadedByDisplayName}
-                                            {" · "}
-                                            {formatTimestamp(attachment.createdUtc)}
-                                        </Typography>
-                                    </Box>
-                                </Stack>
-
-                                <Button
-                                    component='a'
-                                    href={getTechnicianAttachmentDownloadUrl(workOrderId, attachment.id)}
-                                    rel="noreferrer"
-                                    size="small"
-                                    startIcon={<OpenInNewRounded />}
-                                    target="_blank"
-                                    variant="text"
-                                >
-                                    Open
-                                </Button>
-                            </Paper>
-                        ))}
-                    </Stack>
-                )}
+                ) : <WorkOrderAttachmentList
+                        attachments={attachments}
+                        emptyMessage={emptyMessage}
+                        getDownloadUrl={attachemntId => getTechnicianAttachmentDownloadUrl(workOrderId, attachemntId)}
+                    />
+                }
             </Stack>
         </Paper>
     );

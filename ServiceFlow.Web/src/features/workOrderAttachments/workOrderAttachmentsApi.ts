@@ -27,3 +27,11 @@ export function uploadTechnicianWorkOrderAttachment(workOrderId: string, file: F
 export function getTechnicianAttachmentDownloadUrl(workOrderId: string, attachmentId: string) {
     return apiUrl(`/technician/work-order/${workOrderId}/attachments/${attachmentId}/download`);
 }
+
+export function getWorkOrderAttachments(workOrderId: string) {
+    return apiRequest<WorkOrderAttachment[]>(`/workorders/${workOrderId}/attachments`);
+}
+
+export function getWorkOrderAttachmentDownloadUrl(workOrderId: string, attachmentId: string) {
+    return apiUrl(`/workorders/${workOrderId}/attachments/${attachmentId}/download`);
+}
