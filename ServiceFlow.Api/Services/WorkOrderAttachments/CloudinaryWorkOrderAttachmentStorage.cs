@@ -8,53 +8,7 @@ public sealed class CloudinaryWorkOrderAttachmentStorage(
 ) : IWorkOrderAttachmentStorage
 {
     private const string PrivateDeliveryType = "private";
-    private const string RawResourceType = "raw"; 
-
-    // public async Task<StoredWorkOrderAttachment> UploadAsync(
-    //     WorkOrderAttachmentUpload upload, 
-    //     CancellationToken cancellationToken
-    // )
-    // {
-    //     var assetFolder = $"serviceFlow/organizations/{upload.OrganizationId:N}/work-orders/{upload.WorkOrderId:N}";
-
-    //     var isImage = upload.FileExtension.ToLowerInvariant() switch
-    //     {
-    //         ".jpg" or ".jpeg" or ".webp" or ".png" => true,
-    //         ".pdf" => false,
-    //         _ => throw new InvalidOperationException($"Unsupported attachment extension: {upload.FileExtension}")
-    //     };
-
-    //     var resourceType = isImage ? "image" : RawResourceType;
-
-    //     var publicId = isImage
-    //         ? upload.AttachmentId.ToString("N")
-    //         : $"{upload.AttachmentId:N}{upload.FileExtension}";
-
-    //     using var fileDescription = new FileDescription(upload.OriginalFileName, upload.Content);
-
-    //     UploadResult result;
-
-    //     if (isImage)
-    //     {
-    //         result = await cloudinary.UploadAsync(
-    //         );
-    //     } 
-
-    //     // var result = await cloudinary.UploadAsync(
-    //     //     new RawUploadParams
-    //     //     {
-    //     //         File = fileDescription,
-    //     //         PublicId = publicId,
-    //     //         AssetFolder = assetFolder,
-    //     //         Type = PrivateDeliveryType,
-    //     //         UseFilename = false,
-    //     //         UniqueFilename = false,
-    //     //         Overwrite = false,
-    //     //         ResourceType = "auto"
-    //     //     },
-    //     //     cancellationToken
-    //     // );
-    // }
+    private const string RawResourceType = "raw";
 
     public async Task<StoredWorkOrderAttachment> UploadAsync(
         WorkOrderAttachmentUpload upload,

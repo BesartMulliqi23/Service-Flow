@@ -27,9 +27,8 @@ public sealed class TechnicianWorkOrderAttachmentsController(
     }
 
     [HttpPost]
-    [Consumes("multipart/form-data")] // <<<<-------
     [RequestFormLimits(MultipartBodyLengthLimit = WorkOrderAttachmentFilePolicy.MaxMultipartBodySizeBytes)]
-    [ProducesResponseType(typeof(WorkOrderAttachmentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WorkOrderAttachmentResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]

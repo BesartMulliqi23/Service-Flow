@@ -26,6 +26,10 @@ export class ApiError extends Error {
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '');
 
+export function apiUrl(path: string) {
+    return `${apiBaseUrl}${path}`;
+}
+
 export async function apiRequest<T>(
     path: string,
     init: RequestInit = {}
@@ -34,9 +38,11 @@ export async function apiRequest<T>(
 
     headers.set('Accept', 'application/json');
 
-    if (init.body !== undefined && !headers.has('Content-Type')) {
+    const isFormData = init.body instanceof FormData;
+
+    if (init.body !== undefined && !isFormData && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
-    }
+    } // the browser adds the required multipart boundary automatically. no need to manually assign multipart/form-data
 
     const response = await fetch(`${apiBaseUrl}${path}`, {
         ...init,

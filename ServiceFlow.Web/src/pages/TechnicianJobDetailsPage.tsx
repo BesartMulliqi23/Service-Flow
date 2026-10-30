@@ -10,6 +10,7 @@ import { CompleteWorkOrderDialog } from "../features/technicianWorkOrders/Comple
 import { WorkOrderMaterialsSection } from "../features/technicianMaterials/WorkOrderMaterialsSection";
 import { createTechnicianWorkOrderNote, getTechnicianWorkOrderNotes } from "../features/workOrderNotes/workOrderNotesApi";
 import { WorkOrderNotesSection } from "../features/workOrderNotes/WorkOrderNotesSection";
+import { WorkOrderAttachmentsSection } from "../features/workOrderAttachments/WorkOrderAttachmentsSection";
 
 function getPriorityColor(priority: WorkOrderPriority) {
     switch (priority) {
@@ -332,6 +333,23 @@ export function TechnicianJobDetailsPage() {
                                     ? 'Start work before adding job notes.'
                                     : 'This Work Order is complete. Job notes are now read-only.'
                             }
+                        />
+
+                        <WorkOrderAttachmentsSection
+                            canUpload={workOrder.status === 'InProgress'}
+                            description={
+                                workOrder.status === 'InProgress'
+                                    ? 'Capture site photos or attach supporting PDF documents.'
+                                    : workOrder.status === 'Scheduled'
+                                        ? 'Photos and supporting documents recorded during this job appear here.'
+                                        : 'Review photos and supporting documents captured during the completed job.' 
+                            }
+                            emptyMessage={
+                                workOrder.status === 'Completed'
+                                    ? 'No photos or attachments were recorded for this completed Work Order.'
+                                    : 'No photos or attachments have been added to this job yet.' 
+                            }
+                            workOrderId={workOrder.id}
                         />
 
                         {(workOrder.status === 'InProgress' || workOrder.status === 'Completed') && (
