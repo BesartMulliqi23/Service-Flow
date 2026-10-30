@@ -84,6 +84,12 @@ It helps office staff manage customers, service locations, work orders, technici
 - Append-only Technician job notes for assigned In Progress Work Orders
 - Tenant-scoped note history with author and timestamp details
 - Read-only Work Order note-history view for Owners, Managers, and Dispatchers
+- Secure Work Order photo and attachment uploads for assigned Technicians
+- JPEG, PNG, WebP, and PDF attachment support with a 10 MB per-file limit
+- Private Cloudinary asset storage with SQL Server metadata persistence
+- Tenant-scoped attachment retrieval and time-limited signed download URLs
+- Technician attachment upload UI for In Progress Work Orders
+- Read-only attachment-history view for Owners, Managers, and Dispatchers
 
 ## Operational dashboard
 
@@ -96,7 +102,6 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ## Roadmap
 
-- Photos and attachments for Work Orders
 - Notifications and reminders
 - Audit logging
 - Search, filtering, and pagination
@@ -114,6 +119,7 @@ It helps office staff manage customers, service locations, work orders, technici
 - Docker Compose
 - Mailpit
 - MailKit
+- Cloudinary and CloudinaryDotNet
 
 ## Local development setup
 
@@ -180,6 +186,13 @@ For local OAuth testing, configure these callback URLs with the provider:
 Google: https://localhost:7223/signin-google
 Microsoft: https://localhost:7223/signin-microsoft
 ```
+
+To enable private Work Order attachment uploads, configure Cloudinary credentials in User Secrets:
+
+```powershell
+dotnet user-secrets set "Cloudinary:CloudName" "YOUR_CLOUDINARY_CLOUD_NAME" --project .\ServiceFlow.Api
+dotnet user-secrets set "Cloudinary:ApiKey" "YOUR_CLOUDINARY_API_KEY" --project .\ServiceFlow.Api
+dotnet user-secrets set "Cloudinary:ApiSecret" "YOUR_CLOUDINARY_API_SECRET" --project .\ServiceFlow.Api
 
 ### 3. Create or update the local database
 
