@@ -8,7 +8,7 @@ using ServiceFlow.Api.Services.Materials;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/workorders/{workOrderId:guid}/materials")]
+[Route("api/work-orders/{workOrderId:guid}/materials")]
 [Authorize(Policy = OrganizationPolicies.ManageWorkOrderMaterials)]
 public sealed class WorkOrderMaterialsController(
     IWorkOrderMaterialService workOrderMaterialService

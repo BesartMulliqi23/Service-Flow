@@ -4,11 +4,12 @@ import { createWorkOrder, getWorkOrders, updateWorkOrder, type WorkOrder, type W
 import { getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
 import { Navigate } from "react-router";
 import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { AddRounded, EditRounded, EventRounded, GroupAddRounded, NotesRounded } from "@mui/icons-material";
+import { AddRounded, AttachFileRounded, EditRounded, EventRounded, GroupAddRounded, NotesRounded } from "@mui/icons-material";
 import { WorkOrderFormDialog } from "../features/workOrders/WorkOrderFormDialog";
 import { ScheduleWorkOrderDialog } from "../features/workOrders/ScheduleWorkOrderDialog";
 import { WorkOrderAssignmentsDialog } from "../features/workOrders/WorkOrderAssignmentsDialog";
 import { WorkOrderNotesDialog } from "../features/workOrderNotes/WorkOrderNotesDialog";
+import { WorkOrderAttachmentsDialog } from "../features/workOrderAttachments/WorkOrderAttachmentsDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
@@ -92,6 +93,7 @@ export function WorkOrdersPage() {
     const [workOrderToSchedule, setWorkOrderToSchedule] = useState<WorkOrder | null>(null);
     const [workOrderToAssign, setWorkOrderToAssign] = useState<WorkOrder | null>(null);
     const [workOrderToViewNotes, setWorkOrderToViewNotes] = useState<WorkOrder | null>(null);
+    const [workOrderToViewAttachments, setWorkOrderToViewAttachments] = useState<WorkOrder | null>(null);
 
     const canManageWorkOrders = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -406,6 +408,15 @@ export function WorkOrdersPage() {
                                                     </IconButton>
                                                 </Tooltip>
 
+                                                <Tooltip title='View photos and attachments'>
+                                                    <IconButton
+                                                        aria-label={`View photos and attachments for ${workOrder.title}`}
+                                                        onClick={() => setWorkOrderToViewAttachments(workOrder)}
+                                                    >
+                                                        <AttachFileRounded />
+                                                    </IconButton>
+                                                </Tooltip>
+
                                                 {workOrder.status === 'Draft' && (
                                                     <Tooltip title='Edit draft work order'>
                                                         <IconButton
@@ -482,6 +493,12 @@ export function WorkOrdersPage() {
                 onClose={() => setWorkOrderToViewNotes(null)}
                 open={workOrderToViewNotes !== null}
                 workOrder={workOrderToViewNotes}
+            />
+
+            <WorkOrderAttachmentsDialog
+                onClose={() => setWorkOrderToViewAttachments(null)}
+                open={workOrderToViewAttachments !== null}
+                workOrder={workOrderToViewAttachments}
             />
         </>
     );

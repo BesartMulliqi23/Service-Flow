@@ -17,6 +17,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<WorkOrderMaterial> WorkOrderMaterials => Set<WorkOrderMaterial>();
     public DbSet<WorkOrderNote> WorkOrderNotes => Set<WorkOrderNote>();
+    public DbSet<WorkOrderAttachment> WorkOrderAttachments => Set<WorkOrderAttachment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -454,6 +455,67 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 note.OrganizationId,
                 note.WorkOrderId,
                 note.CreatedUtc
+            });
+        });
+
+        builder.Entity<WorkOrderAttachment>(entity =>
+        {
+            entity.Property(attachment => attachment.OriginalFileName)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(attachment => attachment.ContentType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(attachment => attachment.FileSizeBytes)
+                .IsRequired();
+
+            entity.Property(attachment => attachment.CloudinaryAssetId)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(attachment => attachment.CloudinaryPublicId)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(attachment => attachment.CloudinaryResourceType)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.HasOne(attachment => attachment.WorkOrder)
+                .WithMany(workOrder => workOrder.Attachments)
+                .HasForeignKey(attachment => new
+                {
+                    attachment.WorkOrderId,
+                    attachment.OrganizationId
+                })
+                .HasPrincipalKey(workOrder => new
+                {
+                    workOrder.Id,
+                    workOrder.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(attachment => attachment.UploadedByUser)
+                .WithMany(user => user.WorkOrderAttachments)
+                .HasForeignKey(attachment => new
+                {
+                    attachment.UploadedByUserId,
+                    attachment.OrganizationId
+                })
+                .HasPrincipalKey(user => new
+                {
+                    user.Id,
+                    user.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(attachment => new
+            {
+                attachment.OrganizationId,
+                attachment.WorkOrderId,
+                attachment.CreatedUtc
             });
         });
     }

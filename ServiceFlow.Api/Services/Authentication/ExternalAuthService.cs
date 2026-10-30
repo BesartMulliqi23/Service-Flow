@@ -210,22 +210,24 @@ public sealed class ExternalAuthService(
         return Success();
     }
 
-    private async Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(
+    private Task<ExternalAuthenticationResult> HandleNewExternalUserAsync(
         ExternalLoginInfo info,
         string email,
         CancellationToken cancellationToken
     )
     {
         var flow = GetAuthenticationFlow(info);
-        
+
         if (string.Equals(flow, "onboarding", StringComparison.OrdinalIgnoreCase))
         {
-            return HandleOnboardingFlow();
+            return Task.FromResult(HandleOnboardingFlow());
         }
 
-        return Failure(
-            ExternalAuthenticationStatus.AuthenticationFailed,
-            "The authentication flow could not be determined."
+        return Task.FromResult(
+            Failure(
+                ExternalAuthenticationStatus.AuthenticationFailed,
+                "The authentication flow could not be determined."
+            )
         );
     }
 

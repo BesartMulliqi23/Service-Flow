@@ -44,18 +44,18 @@ export function getServiceLocations({
         query.set('customerId', customerId);
     }
 
-    return apiRequest<ServiceLocation[]>(`/servicelocations?${query.toString()}`);
+    return apiRequest<ServiceLocation[]>(`/service-locations?${query.toString()}`);
 }
 
 export function createServiceLocation(input: ServiceLocationInput) {
-    return apiRequest<ServiceLocation>('/servicelocations', {
+    return apiRequest<ServiceLocation>('/service-locations', {
         method: 'POST',
         body: JSON.stringify(input)
     });
 }
 
 export function updateServiceLocation(serviceLocationId: string, input: ServiceLocationInput) {
-    return apiRequest<ServiceLocation>(`/servicelocations/${serviceLocationId}`, {
+    return apiRequest<ServiceLocation>(`/service-locations/${serviceLocationId}`, {
         method: 'PUT',
         body: JSON.stringify({
             name: input.name,
@@ -70,7 +70,7 @@ export function updateServiceLocation(serviceLocationId: string, input: ServiceL
 }
 
 export function deactivateServiceLocation(serviceLocationId: string) {
-    return apiRequest<void>(`/servicelocations/${serviceLocationId}/deactivate`, {
+    return apiRequest<void>(`/service-locations/${serviceLocationId}/deactivate`, {
         method: 'POST'
     });
 }

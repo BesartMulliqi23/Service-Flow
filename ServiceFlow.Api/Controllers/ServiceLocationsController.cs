@@ -7,7 +7,7 @@ using ServiceFlow.Api.Services.ServiceLocations;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/service-locations")]
 [Authorize(Policy = OrganizationPolicies.ManageCustomers)]
 public sealed class ServiceLocationsController(
     IServiceLocationService serviceLocationService
