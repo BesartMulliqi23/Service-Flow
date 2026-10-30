@@ -8,16 +8,16 @@ export type WorkOrderNote = {
 };
 
 export function getTechnicianWorkOrderNotes(workOrderId: string) {
-    return apiRequest<WorkOrderNote[]>(`/technician/work-order/${workOrderId}/notes`);
+    return apiRequest<WorkOrderNote[]>(`/technician/work-orders/${workOrderId}/notes`);
 }
 
 export function createTechnicianWorkOrderNote(workOrderId: string, content: string) {
-    return apiRequest<WorkOrderNote>(`/technician/work-order/${workOrderId}/notes`, {
+    return apiRequest<WorkOrderNote>(`/technician/work-orders/${workOrderId}/notes`, {
         method: 'POST',
         body: JSON.stringify({ content })
     });
 }
 
 export function getWorkOrderNotes(workOrderId: string) {
-    return apiRequest<WorkOrderNote[]>(`/workorders/${workOrderId}/notes`);
+    return apiRequest<WorkOrderNote[]>(`/work-orders/${workOrderId}/notes`);
 }

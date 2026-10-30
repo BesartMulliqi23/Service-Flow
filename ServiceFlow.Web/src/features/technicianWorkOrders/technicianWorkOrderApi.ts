@@ -33,21 +33,21 @@ export function getTechnicianWorkOrders(status?: WorkOrderStatus) {
 
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
 
-    return apiRequest<TechnicianWorkOrder[]>(`/technician/work-order${suffix}`);
+    return apiRequest<TechnicianWorkOrder[]>(`/technician/work-orders${suffix}`);
 }
 
 export function getTechnicianWorkOrder(workOrderId: string) {
-    return apiRequest<TechnicianWorkOrder>(`/technician/work-order/${workOrderId}`);
+    return apiRequest<TechnicianWorkOrder>(`/technician/work-orders/${workOrderId}`);
 }
 
 export function startTechnicianWorkOrder(workOrderId: string) {
-    return apiRequest<TechnicianWorkOrder>(`/technician/work-order/${workOrderId}/start`, {
+    return apiRequest<TechnicianWorkOrder>(`/technician/work-orders/${workOrderId}/start`, {
         method: 'POST'
     });
 }
 
 export function completeTechnicianWorkOrder(workOrderId: string, completionNote: string) {
-    return apiRequest<TechnicianWorkOrder>(`/technician/work-order/${workOrderId}/complete`, {
+    return apiRequest<TechnicianWorkOrder>(`/technician/work-orders/${workOrderId}/complete`, {
         method: 'POST',
         body: JSON.stringify({ completionNote })
     });

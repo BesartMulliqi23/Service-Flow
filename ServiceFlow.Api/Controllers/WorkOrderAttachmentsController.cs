@@ -7,7 +7,7 @@ using ServiceFlow.Api.Services.WorkOrderAttachments;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/workorders/{workOrderId:guid}/attachments")]
+[Route("api/work-orders/{workOrderId:guid}/attachments")]
 [Authorize(Policy = OrganizationPolicies.ManageWorkOrders)]
 public sealed class WorkOrderAttachmentsController(
     IWorkOrderAttachmentService attachmentService

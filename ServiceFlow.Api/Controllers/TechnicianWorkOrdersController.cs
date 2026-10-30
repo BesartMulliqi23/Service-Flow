@@ -10,7 +10,7 @@ using ServiceFlow.Api.Services.WorkOrderNotes;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/technician/work-order")]
+[Route("api/technician/work-orders")]
 [Authorize(Policy = OrganizationPolicies.ExecuteAssignedWork)]
 public sealed class TechnicianWorkOrdersController(
     ITechnicianWorkOrderService technicianWorkOrderService,

@@ -57,18 +57,18 @@ export function getWorkOrders({
 
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
 
-    return apiRequest<WorkOrder[]>(`/workorders${suffix}`);
+    return apiRequest<WorkOrder[]>(`/work-orders${suffix}`);
 }
 
 export function createWorkOrder(input: WorkOrderInput) {
-    return apiRequest<WorkOrder>('/workorders', {
+    return apiRequest<WorkOrder>('/work-orders', {
         method: 'POST',
         body: JSON.stringify(input)
     });
 }
 
 export function updateWorkOrder(workOrderId: string, input: WorkOrderInput) {
-    return apiRequest<WorkOrder>(`/workorders/${workOrderId}`, {
+    return apiRequest<WorkOrder>(`/work-orders/${workOrderId}`, {
         method: 'PUT',
         body: JSON.stringify({
             title: input.title,
@@ -80,7 +80,7 @@ export function updateWorkOrder(workOrderId: string, input: WorkOrderInput) {
 }
 
 export function scheduleWorkOrder(workOrderId: string, input: ScheduleWorkOrderInput) {
-    return apiRequest<WorkOrder>(`/workorders/${workOrderId}/schedule`, {
+    return apiRequest<WorkOrder>(`/work-orders/${workOrderId}/schedule`, {
         method: 'POST',
         body: JSON.stringify(input)
     });
@@ -94,18 +94,18 @@ export interface WorkOrderAssignment {
 }
 
 export function getWorkOrderAssignments(workOrderId: string) {
-    return apiRequest<WorkOrderAssignment[]>(`/workorders/${workOrderId}/assignments`);
+    return apiRequest<WorkOrderAssignment[]>(`/work-orders/${workOrderId}/assignments`);
 }
 
 export function assignTechnician(workOrderId: string, technicianId: string) {
-    return apiRequest<WorkOrderAssignment>(`/workorders/${workOrderId}/assignments`, {
+    return apiRequest<WorkOrderAssignment>(`/work-orders/${workOrderId}/assignments`, {
         method: 'POST',
         body: JSON.stringify({ technicianId })
     });
 }
 
 export function removeTechnicianAssignment(workOrderId: string, technicianId: string) {
-    return apiRequest<void>(`/workorders/${workOrderId}/assignments/${technicianId}`, {
+    return apiRequest<void>(`/work-orders/${workOrderId}/assignments/${technicianId}`, {
         method: 'DELETE'
     });
 }

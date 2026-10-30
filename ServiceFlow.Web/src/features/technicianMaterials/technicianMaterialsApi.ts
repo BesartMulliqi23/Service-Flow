@@ -39,25 +39,25 @@ export function getTechnicianMaterials() {
 }
 
 export function getWorkOrderMaterials(workOrderId: string) {
-    return apiRequest<WorkOrderMaterialUsage[]>(`/workorders/${workOrderId}/materials`);
+    return apiRequest<WorkOrderMaterialUsage[]>(`/work-orders/${workOrderId}/materials`);
 }
 
 export function addWorkOrderMaterial(workOrderId: string, input: AddWorkOrderMaterialInput) {
-    return apiRequest<WorkOrderMaterialUsage>(`/workorders/${workOrderId}/materials`, {
+    return apiRequest<WorkOrderMaterialUsage>(`/work-orders/${workOrderId}/materials`, {
         method: 'POST',
         body: JSON.stringify(input)
     });
 }
 
 export function updateWorkOrderMaterial(workOrderId: string, workOrderMaterialId: string, input: UpdateWorkOrderMaterialInput) {
-    return apiRequest<WorkOrderMaterialUsage>(`/workorders/${workOrderId}/materials/${workOrderMaterialId}`, {
+    return apiRequest<WorkOrderMaterialUsage>(`/work-orders/${workOrderId}/materials/${workOrderMaterialId}`, {
         method: 'PUT',
         body: JSON.stringify(input)
     });
 }
 
 export function removeWorkOrderMaterial(workOrderId: string, workOrderMaterialId: string) {
-    return apiRequest<void>(`/workorders/${workOrderId}/materials/${workOrderMaterialId}`, {
+    return apiRequest<void>(`/work-orders/${workOrderId}/materials/${workOrderMaterialId}`, {
         method: 'DELETE'
     });
 }

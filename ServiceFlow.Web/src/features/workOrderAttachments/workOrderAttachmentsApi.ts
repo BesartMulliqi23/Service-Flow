@@ -10,7 +10,7 @@ export interface WorkOrderAttachment {
 }
 
 export function getTechnicianWorkOrderAttachments(workOrderId: string) {
-    return apiRequest<WorkOrderAttachment[]>(`/technician/work-order/${workOrderId}/attachments`);
+    return apiRequest<WorkOrderAttachment[]>(`/technician/work-orders/${workOrderId}/attachments`);
 }
 
 export function uploadTechnicianWorkOrderAttachment(workOrderId: string, file: File) {
@@ -18,20 +18,20 @@ export function uploadTechnicianWorkOrderAttachment(workOrderId: string, file: F
 
     formData.append('file', file);
 
-    return apiRequest<WorkOrderAttachment>(`/technician/work-order/${workOrderId}/attachments`, {
+    return apiRequest<WorkOrderAttachment>(`/technician/work-orders/${workOrderId}/attachments`, {
         method: 'POST',
         body: formData
     });   
 }
 
 export function getTechnicianAttachmentDownloadUrl(workOrderId: string, attachmentId: string) {
-    return apiUrl(`/technician/work-order/${workOrderId}/attachments/${attachmentId}/download`);
+    return apiUrl(`/technician/work-orders/${workOrderId}/attachments/${attachmentId}/download`);
 }
 
 export function getWorkOrderAttachments(workOrderId: string) {
-    return apiRequest<WorkOrderAttachment[]>(`/workorders/${workOrderId}/attachments`);
+    return apiRequest<WorkOrderAttachment[]>(`/work-orders/${workOrderId}/attachments`);
 }
 
 export function getWorkOrderAttachmentDownloadUrl(workOrderId: string, attachmentId: string) {
-    return apiUrl(`/workorders/${workOrderId}/attachments/${attachmentId}/download`);
+    return apiUrl(`/work-orders/${workOrderId}/attachments/${attachmentId}/download`);
 }

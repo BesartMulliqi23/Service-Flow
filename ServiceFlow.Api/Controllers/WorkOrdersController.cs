@@ -11,7 +11,7 @@ using ServiceFlow.Api.Services.WorkOrders;
 namespace ServiceFlow.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/work-orders")]
 [Authorize(Policy = OrganizationPolicies.ManageWorkOrders)]
 public sealed class WorkOrdersController(
     IWorkOrderService workOrderService,
