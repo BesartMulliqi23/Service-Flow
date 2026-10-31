@@ -4,6 +4,7 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrderAssignments;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Notifications;
 using ServiceFlow.Api.Services.Scheduling;
 
 namespace ServiceFlow.Api.Services.WorkOrderAssignments;
@@ -12,7 +13,8 @@ public sealed class WorkOrderAssignmentService(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     ICurrentOrganization currentOrganization,
-    ITechnicianScheduleConflictService technicianScheduleConflictService
+    ITechnicianScheduleConflictService technicianScheduleConflictService,
+    IWorkOrderNotificationWriter workOrderNotificationWriter
 ) : IWorkOrderAssignmentService
 {
     public async Task<GetWorkOrderAssignmentsResult> GetAllAsync(Guid workOrderId, CancellationToken cancellationToken)
@@ -170,6 +172,8 @@ public sealed class WorkOrderAssignmentService(
         };
 
         dbContext.WorkOrderAssignments.Add(assignment);
+
+        workOrderNotificationWriter.AddTechnicianAssignmentNotification(workOrder, assignment);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

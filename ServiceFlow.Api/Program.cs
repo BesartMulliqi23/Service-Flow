@@ -13,6 +13,7 @@ using ServiceFlow.Api.Services.Dashboard;
 using ServiceFlow.Api.Services.Email;
 using ServiceFlow.Api.Services.Invitations;
 using ServiceFlow.Api.Services.Materials;
+using ServiceFlow.Api.Services.Notifications;
 using ServiceFlow.Api.Services.OrganizationOnboarding;
 using ServiceFlow.Api.Services.Scheduling;
 using ServiceFlow.Api.Services.ServiceLocations;
@@ -81,6 +82,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IWorkOrderNoteService, WorkOrderNoteService>();
 builder.Services.AddScoped<IWorkOrderAttachmentStorage, CloudinaryWorkOrderAttachmentStorage>();
 builder.Services.AddScoped<IWorkOrderAttachmentService, WorkOrderAttachmentService>();
+builder.Services.AddScoped<IWorkOrderNotificationWriter, WorkOrderNotificationWriter>();
 
 builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
 {
