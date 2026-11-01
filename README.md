@@ -90,6 +90,10 @@ It helps office staff manage customers, service locations, work orders, technici
 - Tenant-scoped attachment retrieval and time-limited signed download URLs
 - Technician attachment upload UI for In Progress Work Orders
 - Read-only attachment-history view for Owners, Managers, and Dispatchers
+- In-app notifications for Technician assignment, Work Order rescheduling, and upcoming scheduled jobs
+- Tenant and recipient-scoped notification retrieval with unread counts and read-state management
+- Automatic once-per-schedule upcoming-job reminders for assigned Technicians within the next 24 hours
+- Notification bell and in-app notification center with read and mark-all-read workflows
 
 ## Operational dashboard
 
@@ -102,7 +106,6 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ## Roadmap
 
-- Notifications and reminders
 - Audit logging
 - Search, filtering, and pagination
 - Automated authorization and business-rule tests
@@ -193,6 +196,7 @@ To enable private Work Order attachment uploads, configure Cloudinary credential
 dotnet user-secrets set "Cloudinary:CloudName" "YOUR_CLOUDINARY_CLOUD_NAME" --project .\ServiceFlow.Api
 dotnet user-secrets set "Cloudinary:ApiKey" "YOUR_CLOUDINARY_API_KEY" --project .\ServiceFlow.Api
 dotnet user-secrets set "Cloudinary:ApiSecret" "YOUR_CLOUDINARY_API_SECRET" --project .\ServiceFlow.Api
+```
 
 ### 3. Create or update the local database
 
