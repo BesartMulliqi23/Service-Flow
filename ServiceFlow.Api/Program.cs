@@ -83,6 +83,8 @@ builder.Services.AddScoped<IWorkOrderNoteService, WorkOrderNoteService>();
 builder.Services.AddScoped<IWorkOrderAttachmentStorage, CloudinaryWorkOrderAttachmentStorage>();
 builder.Services.AddScoped<IWorkOrderAttachmentService, WorkOrderAttachmentService>();
 builder.Services.AddScoped<IWorkOrderNotificationWriter, WorkOrderNotificationWriter>();
+builder.Services.AddScoped<IWorkOrderReminderProcessor, WorkOrderReminderProcessor>();
+builder.Services.AddHostedService<WorkOrderReminderBackgroundService>();
 
 builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
 {
