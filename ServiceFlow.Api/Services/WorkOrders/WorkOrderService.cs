@@ -3,6 +3,7 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.Notifications;
 using ServiceFlow.Api.Services.Scheduling;
 
 namespace ServiceFlow.Api.Services.WorkOrders;
@@ -10,7 +11,8 @@ namespace ServiceFlow.Api.Services.WorkOrders;
 public sealed class WorkOrderService(
     ApplicationDbContext dbContext,
     ICurrentOrganization currentOrganization,
-    ITechnicianScheduleConflictService technicianScheduleConflictService
+    ITechnicianScheduleConflictService technicianScheduleConflictService,
+    IWorkOrderNotificationWriter workOrderNotificationWriter
 ) : IWorkOrderService
 {
     public async Task<CreateWorkOrderResult> CreateAsync(CreateWorkOrderRequest request, CancellationToken cancellationToken)
@@ -243,10 +245,23 @@ public sealed class WorkOrderService(
             }
         }
 
+        var isReschedule = workOrder.Status == WorkOrderStatus.Scheduled;
+
+        var scheduleChanged = 
+            workOrder.ScheduledStartUtc != request.ScheduledStartUtc ||
+            workOrder.ScheduledEndUtc != request.ScheduledEndUtc;
+
+        var now = DateTime.UtcNow;
+
         workOrder.ScheduledStartUtc = request.ScheduledStartUtc;
         workOrder.ScheduledEndUtc = request.ScheduledEndUtc;
         workOrder.Status = WorkOrderStatus.Scheduled;
-        workOrder.UpdatedUtc = DateTime.UtcNow;
+        workOrder.UpdatedUtc = now;
+
+        if (isReschedule && scheduleChanged && assignedTechnicianIds.Count > 0)
+        {
+            workOrderNotificationWriter.AddWorkOrderRescheduledNotifications(workOrder, assignedTechnicianIds);
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         

@@ -679,6 +679,65 @@ namespace ServiceFlow.Api.Migrations
                     b.ToTable("WorkOrderNotes");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReadUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RecipientUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ScheduledStartUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("WorkOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId", "OrganizationId");
+
+                    b.HasIndex("WorkOrderId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId", "RecipientUserId", "DeduplicationKey")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "RecipientUserId", "ReadUtc", "CreatedUtc");
+
+                    b.ToTable("WorkOrderNotifications");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderStatusChange", b =>
                 {
                     b.Property<Guid>("Id")
@@ -922,6 +981,27 @@ namespace ServiceFlow.Api.Migrations
                     b.Navigation("WorkOrder");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderNotification", b =>
+                {
+                    b.HasOne("ServiceFlow.Api.Models.ApplicationUser", "RecipientUser")
+                        .WithMany("WorkOrderNotifications")
+                        .HasForeignKey("RecipientUserId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ServiceFlow.Api.Models.WorkOrder", "WorkOrder")
+                        .WithMany("Notifications")
+                        .HasForeignKey("WorkOrderId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RecipientUser");
+
+                    b.Navigation("WorkOrder");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.WorkOrderStatusChange", b =>
                 {
                     b.HasOne("ServiceFlow.Api.Models.ApplicationUser", "ChangedByUser")
@@ -951,6 +1031,8 @@ namespace ServiceFlow.Api.Migrations
 
                     b.Navigation("WorkOrderNotes");
 
+                    b.Navigation("WorkOrderNotifications");
+
                     b.Navigation("WorkOrderStatusChanges");
                 });
 
@@ -973,6 +1055,8 @@ namespace ServiceFlow.Api.Migrations
                     b.Navigation("Materials");
 
                     b.Navigation("Notes");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("StatusHistory");
                 });

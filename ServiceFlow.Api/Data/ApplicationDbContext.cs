@@ -18,6 +18,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkOrderMaterial> WorkOrderMaterials => Set<WorkOrderMaterial>();
     public DbSet<WorkOrderNote> WorkOrderNotes => Set<WorkOrderNote>();
     public DbSet<WorkOrderAttachment> WorkOrderAttachments => Set<WorkOrderAttachment>();
+    public DbSet<WorkOrderNotification> WorkOrderNotifications => Set<WorkOrderNotification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -517,6 +518,70 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 attachment.WorkOrderId,
                 attachment.CreatedUtc
             });
+        });
+
+        builder.Entity<WorkOrderNotification>(entity =>
+        {
+            entity.Property(notification => notification.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(notification => notification.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(notification => notification.Message)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(notification => notification.DeduplicationKey)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.HasOne(notification => notification.WorkOrder)
+                .WithMany(workOrder => workOrder.Notifications)
+                .HasForeignKey(notification => new
+                {
+                    notification.WorkOrderId,
+                    notification.OrganizationId
+                })
+                .HasPrincipalKey(workOrder => new
+                {
+                    workOrder.Id,
+                    workOrder.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(notification => notification.RecipientUser)
+                .WithMany(user => user.WorkOrderNotifications)
+                .HasForeignKey(notification => new
+                {
+                    notification.RecipientUserId,
+                    notification.OrganizationId
+                })
+                .HasPrincipalKey(user => new
+                {
+                    user.Id,
+                    user.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(notification => new
+            {
+                notification.OrganizationId,
+                notification.RecipientUserId,
+                notification.ReadUtc,
+                notification.CreatedUtc
+            });
+
+            entity.HasIndex(notification => new
+            {
+                notification.OrganizationId,
+                notification.RecipientUserId,
+                notification.DeduplicationKey
+            })
+            .IsUnique();
         });
     }
 

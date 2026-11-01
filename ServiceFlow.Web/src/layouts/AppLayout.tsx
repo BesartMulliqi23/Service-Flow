@@ -3,6 +3,7 @@ import { useAuth } from "../features/auth/AuthContext";
 import { useState } from "react";
 import { AppBar, Avatar, Box, Button, Container, Stack, Toolbar, Typography } from "@mui/material";
 import { LogoutRounded } from "@mui/icons-material";
+import { NotificationMenu } from "../features/notifications/NotificationMenu";
 
 export function AppLayout() {
     const { user, logout } = useAuth();
@@ -168,6 +169,8 @@ export function AppLayout() {
                                 </Button>
                             )}
                         </Stack>
+
+                        <NotificationMenu />
 
                         <Avatar sx={{ bgcolor: 'primary.dark', width: 34, height: 34 }}>
                             {initials}

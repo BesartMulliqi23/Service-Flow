@@ -23,4 +23,5 @@ public sealed class WorkOrder : IOrganizationOwned
     public ICollection<WorkOrderMaterial> Materials { get; } = [];
     public ICollection<WorkOrderNote> Notes { get; } = [];
     public ICollection<WorkOrderAttachment> Attachments { get; } = [];
+    public ICollection<WorkOrderNotification> Notifications { get; } = [];
 }
