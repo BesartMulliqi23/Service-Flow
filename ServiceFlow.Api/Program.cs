@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 using ServiceFlow.Api.Services.Authentication;
 using ServiceFlow.Api.Services.Calendar;
 using ServiceFlow.Api.Services.Customers;
@@ -86,6 +87,7 @@ builder.Services.AddScoped<IWorkOrderNotificationWriter, WorkOrderNotificationWr
 builder.Services.AddScoped<IWorkOrderReminderProcessor, WorkOrderReminderProcessor>();
 builder.Services.AddHostedService<WorkOrderReminderBackgroundService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAuditLogWriter, AuditLogWriter>();
 
 builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
 {
