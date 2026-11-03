@@ -3,12 +3,14 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.ServiceLocations;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 
 namespace ServiceFlow.Api.Services.ServiceLocations;
 
 public sealed class ServiceLocationService(
     ApplicationDbContext dbContext,
-    ICurrentOrganization currentOrganization
+    ICurrentOrganization currentOrganization,
+    IAuditLogWriter auditLogWriter
 ) : IServiceLocationService
 {
     public async Task<CreateServiceLocationResult> CreateAsync(
@@ -50,6 +52,14 @@ public sealed class ServiceLocationService(
         };
 
         dbContext.ServiceLocations.Add(serviceLocation);
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.ServiceLocationCreated,
+            AuditEntityTypes.ServiceLocation,
+            serviceLocation.Id,
+            $"Created service location \"{serviceLocation.Name}\" for customer \"{customer.Name}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -146,6 +156,14 @@ public sealed class ServiceLocationService(
         location.AccessInstructions = NormalizeOptionalValue(request.AccessInstructions);
         location.UpdatedUtc = DateTime.UtcNow;
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.ServiceLocationUpdated,
+            AuditEntityTypes.ServiceLocation,
+            location.Id,
+            $"Updated service location \"{location.Name}\" for customer \"{location.Customer.Name}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToResponse(location, location.Customer.Name);
@@ -173,6 +191,14 @@ public sealed class ServiceLocationService(
 
         location.IsActive = false;
         location.UpdatedUtc = DateTime.UtcNow;
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.ServiceLocationDeactivated,
+            AuditEntityTypes.ServiceLocation,
+            location.Id,
+            $"Deactivated service location \"{location.Name}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

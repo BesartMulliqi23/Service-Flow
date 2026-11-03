@@ -3,6 +3,7 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 using ServiceFlow.Api.Services.Notifications;
 using ServiceFlow.Api.Services.Scheduling;
 
@@ -12,7 +13,8 @@ public sealed class WorkOrderService(
     ApplicationDbContext dbContext,
     ICurrentOrganization currentOrganization,
     ITechnicianScheduleConflictService technicianScheduleConflictService,
-    IWorkOrderNotificationWriter workOrderNotificationWriter
+    IWorkOrderNotificationWriter workOrderNotificationWriter,
+    IAuditLogWriter auditLogWriter
 ) : IWorkOrderService
 {
     public async Task<CreateWorkOrderResult> CreateAsync(CreateWorkOrderRequest request, CancellationToken cancellationToken)
@@ -55,6 +57,14 @@ public sealed class WorkOrderService(
         };
 
         dbContext.WorkOrders.Add(workOrder);
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.WorkOrderCreated,
+            AuditEntityTypes.WorkOrder,
+            workOrder.Id,
+            $"Created draft Work Order \"{workOrder.Title}\" for \"{serviceLocation.Name}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -160,6 +170,14 @@ public sealed class WorkOrderService(
         workOrder.DueUtc = request.DueUtc;
         workOrder.UpdatedUtc = DateTime.UtcNow;
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.WorkOrderUpdated,
+            AuditEntityTypes.WorkOrder,
+            workOrder.Id,
+            $"Updated draft Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new UpdateWorkOrderResult(UpdateWorkOrderStatus.Success, ToResponse(workOrder, workOrder.ServiceLocation));
@@ -261,6 +279,27 @@ public sealed class WorkOrderService(
         if (isReschedule && scheduleChanged && assignedTechnicianIds.Count > 0)
         {
             workOrderNotificationWriter.AddWorkOrderRescheduledNotifications(workOrder, assignedTechnicianIds);
+        }
+
+        if (!isReschedule)
+        {
+            await auditLogWriter.AddAsync(
+                AuditLogAction.WorkOrderScheduled,
+                AuditEntityTypes.WorkOrder,
+                workOrder.Id,
+                $"Scheduled Work Order \"{workOrder.Title}\".",
+                cancellationToken
+            );
+        }
+        else if (scheduleChanged)
+        {
+            await auditLogWriter.AddAsync(
+                AuditLogAction.WorkOrderRescheduled,
+                AuditEntityTypes.WorkOrder,
+                workOrder.Id,
+                $"Rescheduled Work Order \"{workOrder.Title}\".",
+                cancellationToken
+            );
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
