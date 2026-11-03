@@ -25,5 +25,5 @@ public enum AuditLogAction
     MaterialRemoved,
 
     JobNoteAdded,
-    AttachmentUpload
+    AttachmentUploaded
 }

@@ -3,12 +3,14 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.TechnicianWorkOrders;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 
 namespace ServiceFlow.Api.Services.TechnicianWorkOrders;
 
 public sealed class TechnicianWorkOrderService(
     ApplicationDbContext dbContext,
-    ICurrentOrganization currentOrganization
+    ICurrentOrganization currentOrganization,
+    IAuditLogWriter auditLogWriter
 ) : ITechnicianWorkOrderService
 {
     public async Task<IReadOnlyList<TechnicianWorkOrderResponse>> GetAllAsync(
@@ -157,6 +159,14 @@ public sealed class TechnicianWorkOrderService(
             ChangedUtc = now
         });
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.WorkOrderStarted,
+            AuditEntityTypes.WorkOrder,
+            workOrder.Id,
+            $"Started Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new TechnicianWorkOrderExecutionResult(
@@ -223,6 +233,14 @@ public sealed class TechnicianWorkOrderService(
             Note = completionNote,
             ChangedUtc = now
         });
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.WorkOrderCompleted,
+            AuditEntityTypes.WorkOrder,
+            workOrder.Id,
+            $"Completed Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

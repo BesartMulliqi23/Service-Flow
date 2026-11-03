@@ -3,12 +3,14 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrderNotes;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 
 namespace ServiceFlow.Api.Services.WorkOrderNotes;
 
 public sealed class WorkOrderNoteService(
     ApplicationDbContext dbContext,
-    ICurrentOrganization currentOrganization
+    ICurrentOrganization currentOrganization,
+    IAuditLogWriter auditLogWriter
 ) : IWorkOrderNoteService
 {
     public async Task<IReadOnlyList<WorkOrderNoteResponse>?> GetForTechnicianAsync(
@@ -122,6 +124,14 @@ public sealed class WorkOrderNoteService(
         };
 
         dbContext.WorkOrderNotes.Add(note);
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.JobNoteAdded,
+            AuditEntityTypes.WorkOrderNote,
+            note.Id,
+            $"Added a job note to Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
         
         await dbContext.SaveChangesAsync(cancellationToken);
 
