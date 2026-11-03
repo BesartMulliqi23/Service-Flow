@@ -88,6 +88,7 @@ builder.Services.AddScoped<IWorkOrderReminderProcessor, WorkOrderReminderProcess
 builder.Services.AddHostedService<WorkOrderReminderBackgroundService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAuditLogWriter, AuditLogWriter>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 builder.Services.AddSingleton<Cloudinary>(serviceProvider =>
 {
@@ -152,6 +153,11 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(
         OrganizationPolicies.ExecuteAssignedWork,
         policy => policy.RequireRole(ApplicationRoles.Technician)
+    );
+
+    options.AddPolicy(
+        OrganizationPolicies.ViewAuditLogs,
+        policy => policy.RequireRole(ApplicationRoles.Owner, ApplicationRoles.Manager)
     );
 });
 

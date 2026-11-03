@@ -11,6 +11,7 @@ public static class OrganizationPolicies
     public const string ViewReports = "organization.view-reports";
     public const string ViewWorkOrders = "organization.view-work-orders";
     public const string ExecuteAssignedWork = "organization.execute-assigned-work";
+    public const string ViewAuditLogs = "organization.view-audit-logs";
 
     public static readonly string[] OperationsManagers = [
         ApplicationRoles.Owner,
