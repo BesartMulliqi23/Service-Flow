@@ -4,6 +4,7 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrderAssignments;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 using ServiceFlow.Api.Services.Notifications;
 using ServiceFlow.Api.Services.Scheduling;
 
@@ -14,7 +15,8 @@ public sealed class WorkOrderAssignmentService(
     UserManager<ApplicationUser> userManager,
     ICurrentOrganization currentOrganization,
     ITechnicianScheduleConflictService technicianScheduleConflictService,
-    IWorkOrderNotificationWriter workOrderNotificationWriter
+    IWorkOrderNotificationWriter workOrderNotificationWriter,
+    IAuditLogWriter auditLogWriter
 ) : IWorkOrderAssignmentService
 {
     public async Task<GetWorkOrderAssignmentsResult> GetAllAsync(Guid workOrderId, CancellationToken cancellationToken)
@@ -175,6 +177,14 @@ public sealed class WorkOrderAssignmentService(
 
         workOrderNotificationWriter.AddTechnicianAssignmentNotification(workOrder, assignment);
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.TechnicianAssigned,
+            AuditEntityTypes.WorkOrder,
+            workOrder.Id,
+            $"Assigned technician \"{technician.DisplayName}\" to Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new AssignWorkOrderTechnicianResult(
@@ -206,6 +216,7 @@ public sealed class WorkOrderAssignmentService(
         }
 
         var assignment = await dbContext.WorkOrderAssignments
+            .Include(assignment => assignment.Technician)
             .SingleOrDefaultAsync(
                 assignment =>
                     assignment.WorkOrderId == workOrder.Id &&
@@ -218,6 +229,14 @@ public sealed class WorkOrderAssignmentService(
         {
             return WorkOrderAssignmentStatus.AssignmentNotFound;
         }
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.TechnicianUnassigned,
+            AuditEntityTypes.WorkOrder,
+            workOrder.Id,
+            $"Removed technician \"{assignment.Technician.DisplayName}\" from Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
 
         dbContext.WorkOrderAssignments.Remove(assignment);
 

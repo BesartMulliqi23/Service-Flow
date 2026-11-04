@@ -22,6 +22,7 @@ import { RoleProtectedRoute } from "./components/RoleProtectedRoute"
 import { TeamPage } from "./pages/TeamPage"
 import { AcceptInvitationPage } from "./pages/AcceptInvitationPage"
 import { MaterialsPage } from "./pages/MaterialsPage"
+import { ActivityPage } from "./pages/ActivityPage"
 
 function App() {
   return (
@@ -53,6 +54,10 @@ function App() {
 
                 <Route element={<RoleProtectedRoute allowedRoles={['Owner']} />}>
                     <Route path='team' element={<TeamPage />} />
+                </Route>
+
+                <Route element={<RoleProtectedRoute allowedRoles={['Owner', 'Manager']} />}>
+                    <Route path="activity" element={<ActivityPage />} />
                 </Route>
             </Route>
         </Route>

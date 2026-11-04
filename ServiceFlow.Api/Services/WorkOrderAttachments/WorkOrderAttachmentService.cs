@@ -3,13 +3,15 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.WorkOrderAttachments;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 
 namespace ServiceFlow.Api.Services.WorkOrderAttachments;
 
 public sealed class WorkOrderAttachmentService(
     ApplicationDbContext dbContext,
     ICurrentOrganization currentOrganization,
-    IWorkOrderAttachmentStorage attachmentStorage
+    IWorkOrderAttachmentStorage attachmentStorage,
+    IAuditLogWriter auditLogWriter
 ) : IWorkOrderAttachmentService
 {
     public async Task<IReadOnlyList<WorkOrderAttachmentResponse>?> GetForTechnicianAsync(
@@ -141,6 +143,14 @@ public sealed class WorkOrderAttachmentService(
 
         try
         {
+            await auditLogWriter.AddAsync(
+                AuditLogAction.AttachmentUploaded,
+                AuditEntityTypes.WorkOrderAttachment,
+                attachment.Id,
+                $"Uploaded attachment \"{attachment.OriginalFileName}\" to Work Order \"{workOrder.Title}\".",
+                cancellationToken
+            );
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch

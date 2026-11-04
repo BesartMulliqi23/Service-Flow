@@ -230,6 +230,56 @@ namespace ServiceFlow.Api.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ActorDisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ActorUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId", "OrganizationId");
+
+                    b.HasIndex("OrganizationId", "CreatedUtc");
+
+                    b.HasIndex("OrganizationId", "EntityType", "EntityId", "CreatedUtc");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -844,6 +894,24 @@ namespace ServiceFlow.Api.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("ServiceFlow.Api.Models.AuditLog", b =>
+                {
+                    b.HasOne("ServiceFlow.Api.Models.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServiceFlow.Api.Models.ApplicationUser", "ActorUser")
+                        .WithMany("AuditLogs")
+                        .HasForeignKey("ActorUserId", "OrganizationId")
+                        .HasPrincipalKey("Id", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorUser");
+                });
+
             modelBuilder.Entity("ServiceFlow.Api.Models.Customer", b =>
                 {
                     b.HasOne("ServiceFlow.Api.Models.Organization", null)
@@ -1025,6 +1093,8 @@ namespace ServiceFlow.Api.Migrations
 
             modelBuilder.Entity("ServiceFlow.Api.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("AuditLogs");
+
                     b.Navigation("WorkOrderAssignments");
 
                     b.Navigation("WorkOrderAttachments");

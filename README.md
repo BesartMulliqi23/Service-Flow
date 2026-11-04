@@ -95,6 +95,14 @@ It helps office staff manage customers, service locations, work orders, technici
 - Automatic once-per-schedule upcoming-job reminders for assigned Technicians within the next 24 hours
 - Notification bell and in-app notification center with read and mark-all-read workflows
 
+## Audit logging
+
+- Append-only, tenant-scoped audit history for meaningful dispatch and Technician workflow changes
+- Audit coverage for customers, service locations, Work Orders, assignments, status transitions, material usage, job notes, and attachment uploads
+- No passwords, tokens, completion-note content, Cloudinary identifiers, or signed download URLs are stored in audit summaries
+- Owner and Manager access to the paginated **Activity** page
+- Activity filtering by action, resource type, and local date range
+
 ## Operational dashboard
 
 - Tenant-scoped operational summary endpoint for Owners and Managers
@@ -106,7 +114,6 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ## Roadmap
 
-- Audit logging
 - Search, filtering, and pagination
 - Automated authorization and business-rule tests
 - Demo data, deployment, CI, screenshots, and demo video

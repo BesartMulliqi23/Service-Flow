@@ -3,13 +3,15 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.Materials;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 
 namespace ServiceFlow.Api.Services.Materials;
 
 public sealed class WorkOrderMaterialService(
     ApplicationDbContext dbContext,
     ICurrentOrganization currentOrganization,
-    IHttpContextAccessor httpContextAccessor
+    IHttpContextAccessor httpContextAccessor,
+    IAuditLogWriter auditLogWriter
 ) : IWorkOrderMaterialService
 {
     public async Task<GetWorkOrderMaterialsResult> GetAllAsync(
@@ -139,6 +141,14 @@ public sealed class WorkOrderMaterialService(
 
         dbContext.WorkOrderMaterials.Add(usage);
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.MaterialRecorded,
+            AuditEntityTypes.WorkOrderMaterial,
+            usage.Id,
+            $"Recorded {usage.Quantity} {usage.UnitOfMeasure} of \"{usage.MaterialName}\" for Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new WorkOrderMaterialMutationResult(
@@ -200,6 +210,14 @@ public sealed class WorkOrderMaterialService(
 
         usage.UpdatedUtc = DateTime.UtcNow;
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.MaterialUpdated,
+            AuditEntityTypes.WorkOrderMaterial,
+            usage.Id,
+            $"Updated recorded material \"{usage.MaterialName}\" for Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return new WorkOrderMaterialMutationResult(
@@ -243,6 +261,14 @@ public sealed class WorkOrderMaterialService(
         }
 
         dbContext.WorkOrderMaterials.Remove(usage);
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.MaterialRemoved,
+            AuditEntityTypes.WorkOrderMaterial,
+            usage.Id,
+            $"Removed recorded material \"{usage.MaterialName}\" for Work Order \"{workOrder.Title}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

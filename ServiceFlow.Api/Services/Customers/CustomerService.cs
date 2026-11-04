@@ -3,12 +3,14 @@ using ServiceFlow.Api.Authorization;
 using ServiceFlow.Api.Contracts.Customers;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
+using ServiceFlow.Api.Services.AuditLogging;
 
 namespace ServiceFlow.Api.Services.Customers;
 
 public sealed class CustomerService(
     ApplicationDbContext dbContext,
-    ICurrentOrganization currentOrganization
+    ICurrentOrganization currentOrganization,
+    IAuditLogWriter auditLogWriter
 ) : ICustomerService
 {
     public async Task<CustomerResponse> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken)
@@ -26,6 +28,14 @@ public sealed class CustomerService(
         };
 
         dbContext.Customers.Add(customer);
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.CustomerCreated,
+            AuditEntityTypes.Customer,
+            customer.Id,
+            $"Created customer \"{customer.Name}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -97,6 +107,14 @@ public sealed class CustomerService(
         customer.Notes = NormalizeOptionalValue(request.Notes);
         customer.UpdatedUtc = DateTime.UtcNow;
 
+        await auditLogWriter.AddAsync(
+            AuditLogAction.CustomerUpdated,
+            AuditEntityTypes.Customer,
+            customer.Id,
+            $"Updated customer \"{customer.Name}\".",
+            cancellationToken
+        );
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ToResponse(customer);
@@ -124,6 +142,14 @@ public sealed class CustomerService(
 
         customer.IsActive = false;
         customer.UpdatedUtc = DateTime.UtcNow;
+
+        await auditLogWriter.AddAsync(
+            AuditLogAction.CustomerDeactivated,
+            AuditEntityTypes.Customer,
+            customer.Id,
+            $"Deactivated customer \"{customer.Name}\".",
+            cancellationToken
+        );
 
         await dbContext.SaveChangesAsync(cancellationToken);
         

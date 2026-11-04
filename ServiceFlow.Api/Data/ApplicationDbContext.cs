@@ -19,6 +19,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkOrderNote> WorkOrderNotes => Set<WorkOrderNote>();
     public DbSet<WorkOrderAttachment> WorkOrderAttachments => Set<WorkOrderAttachment>();
     public DbSet<WorkOrderNotification> WorkOrderNotifications => Set<WorkOrderNotification>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -582,6 +583,59 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 notification.DeduplicationKey
             })
             .IsUnique();
+        });
+
+        builder.Entity<AuditLog>(entity =>
+        {
+            entity.Property(auditLog => auditLog.ActorDisplayName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(auditLog => auditLog.Action)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(auditLog => auditLog.EntityType)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(auditLog => auditLog.Summary)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.HasOne<Organization>()
+                .WithMany()
+                .HasForeignKey(auditLog => auditLog.OrganizationId)
+                .IsRequired();
+
+            entity.HasOne(auditLog => auditLog.ActorUser)
+                .WithMany(user => user.AuditLogs)
+                .HasForeignKey(auditLog => new
+                {
+                    auditLog.ActorUserId,
+                    auditLog.OrganizationId
+                })
+                .HasPrincipalKey(user => new
+                {
+                    user.Id,
+                    user.OrganizationId
+                })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(auditLog => new
+            {
+                auditLog.OrganizationId,
+                auditLog.CreatedUtc
+            });
+
+            entity.HasIndex(auditLog => new
+            {
+                auditLog.OrganizationId,
+                auditLog.EntityType,
+                auditLog.EntityId,
+                auditLog.CreatedUtc
+            });
         });
     }
 
