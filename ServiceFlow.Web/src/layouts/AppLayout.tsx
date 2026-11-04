@@ -22,6 +22,8 @@ export function AppLayout() {
 
     const canManageMaterials = user?.roles.some(role => ['Owner', 'Manager', 'Dispatcher'].includes(role)) ?? false;
 
+    const canViewAuditLogs = user?.roles.some(role => ['Owner', 'Manager'].includes(role)) ?? false;
+
     async function handleLogout() {
         setIsLoggingOut(true);
 
@@ -155,6 +157,17 @@ export function AppLayout() {
                                     variant={location.pathname === '/app/schedule' ? 'outlined' : 'text'}
                                 >
                                     Schedule
+                                </Button>
+                            )}
+
+                            {canViewAuditLogs && (
+                                <Button
+                                    color="inherit"
+                                    component={Link}
+                                    to='/app/activity'
+                                    variant={location.pathname === '/app/activity' ? 'outlined' : 'text'}
+                                >
+                                    Activity
                                 </Button>
                             )}
 
