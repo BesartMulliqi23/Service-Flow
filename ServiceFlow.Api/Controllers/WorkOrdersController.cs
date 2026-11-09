@@ -18,6 +18,9 @@ public sealed class WorkOrdersController(
     IWorkOrderNoteService workOrderNoteService
 ) : ControllerBase
 {
+    private const int DefaultPageSize = 25;
+    private const int MaximumPageSize = 100;
+
     [HttpPost]
     [ProducesResponseType(typeof(WorkOrderResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -82,12 +85,31 @@ public sealed class WorkOrdersController(
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<WorkOrderResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<WorkOrderResponse>>> GetAll(
+        [FromQuery] string? search,
         [FromQuery] Guid? serviceLocationId,
         [FromQuery] WorkOrderStatus? status,
+        [FromQuery] WorkOrderPriority? priority,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken cancellationToken
     )
     {
-        var workOrders = await workOrderService.GetAllAsync(serviceLocationId, status, cancellationToken);
+        var normalizedPage = Math.Max(page ?? 1, 1);
+        var normalizedPageSize = Math.Clamp(
+            pageSize ?? DefaultPageSize,
+            1,
+            MaximumPageSize
+        );
+
+        var workOrders = await workOrderService.GetAllAsync(
+            search,
+            serviceLocationId, 
+            status,
+            priority,
+            normalizedPage,
+            normalizedPageSize, 
+            cancellationToken
+        );
 
         return Ok(workOrders);
     }

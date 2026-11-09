@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
@@ -71,9 +72,13 @@ public sealed class WorkOrderService(
         return new CreateWorkOrderResult(CreateWorkOrderStatus.Success, ToResponse(workOrder, serviceLocation));
     }
 
-    public async Task<IReadOnlyList<WorkOrderResponse>> GetAllAsync(
+    public async Task<PagedResponse<WorkOrderResponse>> GetAllAsync(
+        string? search,
         Guid? serviceLocationId, 
-        WorkOrderStatus? status, 
+        WorkOrderStatus? status,
+        WorkOrderPriority? priority,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken
     )
     {
@@ -97,8 +102,32 @@ public sealed class WorkOrderService(
             );
         }
 
-        return await query
+        if (priority.HasValue)
+        {
+            query = query.Where(
+                workOrder => workOrder.Priority == priority.Value
+            );
+        }
+
+        var normalizedSearch = NormalizeSearch(search);
+
+        if (normalizedSearch is not null)
+        {
+            query = query.Where(
+                workOrder =>
+                    workOrder.Title.Contains(normalizedSearch) ||
+                    workOrder.ServiceLocation.Name.Contains(normalizedSearch) ||
+                    workOrder.ServiceLocation.Customer.Name.Contains(normalizedSearch)
+            );
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var workOrders = await query
             .OrderByDescending(workOrder => workOrder.CreatedUtc)
+            .ThenByDescending(workOrder => workOrder.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(workOrder => new WorkOrderResponse(
                 workOrder.Id,
                 workOrder.ServiceLocationId,
@@ -118,6 +147,14 @@ public sealed class WorkOrderService(
                 workOrder.UpdatedUtc
             ))
             .ToListAsync(cancellationToken);
+
+        return new PagedResponse<WorkOrderResponse>(
+            workOrders,
+            page,
+            pageSize,
+            totalCount,
+            (int)Math.Ceiling(totalCount / (double)pageSize)
+        );
     }
 
     public async Task<WorkOrderResponse?> GetByIdAsync(Guid workOrderId, CancellationToken cancellationToken)
@@ -308,6 +345,11 @@ public sealed class WorkOrderService(
             ScheduleWorkOrderStatus.Success,
             ToResponse(workOrder, workOrder.ServiceLocation)
         );
+    }
+
+    private static string? NormalizeSearch(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private static WorkOrderResponse ToResponse(WorkOrder workOrder, ServiceLocation serviceLocation)

@@ -1,3 +1,4 @@
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.WorkOrders;
 using ServiceFlow.Api.Models;
 
@@ -7,9 +8,13 @@ public interface IWorkOrderService
 {
     Task<CreateWorkOrderResult> CreateAsync(CreateWorkOrderRequest request, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<WorkOrderResponse>> GetAllAsync(
+    Task<PagedResponse<WorkOrderResponse>> GetAllAsync(
+        string? search,
         Guid? serviceLocationId,
         WorkOrderStatus? status,
+        WorkOrderPriority? priority,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken
     );
 
