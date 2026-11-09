@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.Materials;
 using ServiceFlow.Api.Services.Materials;
 
@@ -14,6 +15,9 @@ public sealed class MaterialsController(
     IMaterialCatalogService materialCatalogService
 ) : ControllerBase
 {
+    private const int DefaultPageSize = 25;
+    private const int MaximumPageSize = 100;
+
     [HttpPost]
     [ProducesResponseType(typeof(MaterialResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -46,13 +50,29 @@ public sealed class MaterialsController(
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<MaterialResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<MaterialResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MaterialResponse>>> GetAll(
+        [FromQuery] string? search,
         [FromQuery] bool includeInactive,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken cancellationToken
     )
     {
-        var materials = await materialCatalogService.GetAllAsync(includeInactive, cancellationToken);
+        var normalizedPage = Math.Max(page ?? 1, 1);
+        var normalizedPageSize = Math.Clamp(
+            pageSize ?? DefaultPageSize,
+            1,
+            MaximumPageSize
+        );
+
+        var materials = await materialCatalogService.GetAllAsync(
+            search,
+            includeInactive, 
+            normalizedPage,
+            normalizedPageSize,
+            cancellationToken
+        );
 
         return Ok(materials);
     }

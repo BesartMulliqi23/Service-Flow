@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.ServiceLocations;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
@@ -69,9 +70,12 @@ public sealed class ServiceLocationService(
         );
     }
 
-    public async Task<IReadOnlyList<ServiceLocationResponse>> GetAllAsync(
+    public async Task<PagedResponse<ServiceLocationResponse>> GetAllAsync(
+        string? search,
         Guid? customerId, 
-        bool includeInactive, 
+        bool includeInactive,
+        int page,
+        int pageSize, 
         CancellationToken cancellationToken
     )
     {
@@ -91,12 +95,32 @@ public sealed class ServiceLocationService(
             query = query.Where(location => location.IsActive);
         }
 
-        return await query
+        var normalizedSearch = NormalizeSearch(search);
+
+        if (normalizedSearch is not null)
+        {
+            query = query.Where(
+                location =>
+                    location.Name.Contains(normalizedSearch) ||
+                    location.Customer.Name.Contains(normalizedSearch) ||
+                    location.AddressLine1.Contains(normalizedSearch) ||
+                    (location.AddressLine2 != null && location.AddressLine2.Contains(normalizedSearch)) ||
+                    location.City.Contains(normalizedSearch) ||
+                    (location.PostalCode != null && location.PostalCode.Contains(normalizedSearch))
+            );
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var locations = await query
             .OrderBy(location => location.Customer.Name)
             .ThenBy(location => location.Name)
+            .ThenBy(location => location.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(location => new ServiceLocationResponse(
                 location.Id,
-                location.CustomerId,
+                location.Customer.Id,
                 location.Customer.Name,
                 location.Name,
                 location.AddressLine1,
@@ -110,6 +134,14 @@ public sealed class ServiceLocationService(
                 location.UpdatedUtc
             ))
             .ToListAsync(cancellationToken);
+
+        return new PagedResponse<ServiceLocationResponse>(
+            locations,
+            page,
+            pageSize,
+            totalCount,
+            (int)Math.Ceiling(totalCount / (double)pageSize)
+        );
     }
 
     public async Task<ServiceLocationResponse?> GetByIdAsync(Guid serviceLocationId, CancellationToken cancellationToken)
@@ -206,6 +238,11 @@ public sealed class ServiceLocationService(
     }
 
     private static string? NormalizeOptionalValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string? NormalizeSearch(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }

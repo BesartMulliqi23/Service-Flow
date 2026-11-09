@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.ServiceLocations;
 using ServiceFlow.Api.Services.ServiceLocations;
 
@@ -13,6 +14,9 @@ public sealed class ServiceLocationsController(
     IServiceLocationService serviceLocationService
 ) : ControllerBase
 {
+    private const int DefaultPageSize = 25;
+    private const int MaximumPageSize = 100;
+
     [HttpPost]
     [ProducesResponseType(typeof(ServiceLocationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -73,14 +77,31 @@ public sealed class ServiceLocationsController(
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<ServiceLocationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ServiceLocationResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ServiceLocationResponse>>> GetAll(
+        [FromQuery] string? search,
         [FromQuery] Guid? customerId,
         [FromQuery] bool includeInactive,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken cancellationToken
     )
     {
-        var locations = await serviceLocationService.GetAllAsync(customerId, includeInactive, cancellationToken);
+        var normalizedPage = Math.Max(page ?? 1, 1);
+        var normalizedPageSize = Math.Clamp(
+            pageSize ?? DefaultPageSize,
+            1,
+            MaximumPageSize
+        );
+
+        var locations = await serviceLocationService.GetAllAsync(
+            search,
+            customerId, 
+            includeInactive,
+            normalizedPage,
+            normalizedPageSize,
+            cancellationToken
+        );
 
         return Ok(locations);
     }

@@ -1,3 +1,4 @@
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.Materials;
 
 namespace ServiceFlow.Api.Services.Materials;
@@ -9,8 +10,15 @@ public interface IMaterialCatalogService
         CancellationToken cancellationToken
     );
 
-    Task<IReadOnlyList<MaterialResponse>> GetAllAsync(
+    Task<PagedResponse<MaterialResponse>> GetAllAsync(
+        string? search,
         bool includeInactive,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken
+    );
+
+    Task<IReadOnlyList<MaterialResponse>> GetActiveForTechnicianAsync(
         CancellationToken cancellationToken
     );
 
