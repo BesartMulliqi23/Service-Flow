@@ -1,3 +1,4 @@
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.Customers;
 
 namespace ServiceFlow.Api.Services.Customers;
@@ -6,7 +7,13 @@ public interface ICustomerService
 {
     Task<CustomerResponse> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<CustomerResponse>> GetAllAsync(bool includeInactive, CancellationToken cancellationToken);
+    Task<PagedResponse<CustomerResponse>> GetAllAsync(
+        string? search,
+        bool includeInactive,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken
+    );
 
     Task<CustomerResponse?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken);
 

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.Customers;
 using ServiceFlow.Api.Services.Customers;
 
@@ -14,6 +15,9 @@ public sealed class CustomersController(
     ICustomerService customerService
 ) : ControllerBase
 {
+    private const int DefaultPageSize = 25;
+    private const int MaximumPageSize = 100;
+
     [HttpPost]
     [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -38,13 +42,29 @@ public sealed class CustomersController(
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<CustomerResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<CustomerResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<CustomerResponse>>> GetAll(
+        [FromQuery] string? search,
         [FromQuery] bool includeInactive,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken cancellationToken
     )
     {
-        var customers = await customerService.GetAllAsync(includeInactive, cancellationToken);
+        var normalizedPage = Math.Max(page ?? 1, 1);
+        var normalizedPageSize = Math.Clamp(
+            pageSize ?? DefaultPageSize,
+            1,
+            MaximumPageSize
+        );
+
+        var customers = await customerService.GetAllAsync(
+            search,
+            includeInactive,
+            normalizedPage,
+            normalizedPageSize, 
+            cancellationToken
+        );
 
         return Ok(customers);
     }
