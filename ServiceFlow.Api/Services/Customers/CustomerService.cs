@@ -104,6 +104,26 @@ public sealed class CustomerService(
         );
     }
 
+    public async Task<IReadOnlyList<CustomerLookupResponse>> GetActiveLookupAsync(CancellationToken cancellationToken)
+    {
+        var organizationId = currentOrganization.OrganizationId;
+
+        return await dbContext.Customers
+            .AsNoTracking()
+            .Where(
+                customer =>
+                    customer.OrganizationId == organizationId &&
+                    customer.IsActive
+            )
+            .OrderBy(customer => customer.Name)
+            .ThenBy(customer => customer.Id)
+            .Select(customer => new CustomerLookupResponse(
+                customer.Id,
+                customer.Name
+            ))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<CustomerResponse?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken)
     {
         var organizationId = currentOrganization.OrganizationId;

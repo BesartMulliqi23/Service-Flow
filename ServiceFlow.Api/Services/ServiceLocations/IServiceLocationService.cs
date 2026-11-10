@@ -19,6 +19,11 @@ public interface IServiceLocationService
         CancellationToken cancellationToken
     );
 
+    Task<IReadOnlyList<ServiceLocationLookupResponse>> GetLookupAsync(
+        bool includeInactive,
+        CancellationToken cancellationToken
+    );
+
     Task<ServiceLocationResponse?> GetByIdAsync(
         Guid serviceLocationId,
         CancellationToken cancellationToken

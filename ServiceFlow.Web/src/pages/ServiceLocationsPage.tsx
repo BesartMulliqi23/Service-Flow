@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import { createServiceLocation, getServiceLocations, updateServiceLocation, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
-import { getCustomers, type Customer } from "../features/customers/customerApi";
+import { getActiveCustomerLookup, type CustomerLookup } from "../features/customers/customerApi";
 import { Navigate } from "react-router";
-import { Alert, Box, Button, Chip, CircularProgress, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, FormControl, FormControlLabel, IconButton, InputLabel, MenuItem, Pagination, Paper, Select, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { AddRounded, EditRounded, PersonOffRounded } from "@mui/icons-material";
 import { ServiceLocationFormDialog } from "../features/serviceLocations/ServiceLocationFormDialog";
 import { ServiceLocationDeactivateDialog } from "../features/serviceLocations/ServiceLocationDeactivateDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
+
+const pageSize = 25;
 
 function formatAddress(location: ServiceLocation) {
     return [
@@ -22,19 +24,11 @@ function formatAddress(location: ServiceLocation) {
         .join(', ');
 }
 
-function sortLocations(locations: ServiceLocation[]) {
-    return [...locations].sort(
-        (first, second) => 
-            first.customerName.localeCompare(second.customerName) ||
-            first.name.localeCompare(second.name)
-    );
-}
-
 export function ServiceLocationsPage() {
     const { user } = useAuth();
 
     const [locations, setLocations] = useState<ServiceLocation[]>([]);
-    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [customers, setCustomers] = useState<CustomerLookup[]>([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [includeInactive, setIncludeInactive] = useState(false);
     const [isLoadingLocations, setIsLoadingLocations] = useState(true);
@@ -44,6 +38,12 @@ export function ServiceLocationsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<ServiceLocation | null>(null);
     const [locationToDeactivate, setLocationToDeactivate] = useState<ServiceLocation | null>(null);
+
+    const [searchInput, setSearchInput] = useState('');
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
 
     const canManageServiceLocations = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
@@ -55,7 +55,7 @@ export function ServiceLocationsPage() {
             setCustomersErrorMessage(null);
 
             try {
-                const response = await getCustomers(false);
+                const response = await getActiveCustomerLookup();
 
                 if (isCurrentRequest) {
                     setCustomers(response);
@@ -79,38 +79,39 @@ export function ServiceLocationsPage() {
     }, []);
 
     useEffect(() => {
-        let isCurrentRequest = true;
+        const intervalId = setInterval(() => {
+            setSearch(searchInput.trim());
+        }, 300);
 
-        async function loadLocations() {
-            setIsLoadingLocations(true);
-            setLocationsErrorMessage(null);
+        return () => clearInterval(intervalId);
+    }, [searchInput]);
 
-            try {
-                const response = await getServiceLocations({
-                    customerId: selectedCustomerId || undefined,
-                    includeInactive
-                });
+    const loadLocations = useCallback(async () => {
+        setIsLoadingLocations(true);
+        setLocationsErrorMessage(null);
 
-                if (isCurrentRequest) {
-                    setLocations(response);
-                }
-            } catch {
-                if (isCurrentRequest) {
-                    setLocationsErrorMessage('Unable to load service locations. Please try again in a moment.');
-                }
-            } finally {
-                if (isCurrentRequest) {
-                    setIsLoadingLocations(false);
-                }
-            }
+        try {
+            const response = await getServiceLocations({
+                search,
+                customerId: selectedCustomerId || undefined,
+                includeInactive,
+                page,
+                pageSize
+            });
+
+            setLocations(response.items);
+            setTotalCount(response.totalCount);
+            setTotalPages(response.totalPages);
+        } catch {
+            setLocationsErrorMessage('Unable to load service locations. Please try again in a moment.');
+        } finally {
+            setIsLoadingLocations(false);
         }
+    }, [includeInactive, selectedCustomerId, search, page]);
 
+    useEffect(() => {
         void loadLocations();
-
-        return () => {
-            isCurrentRequest = false;
-        }
-    }, [includeInactive, selectedCustomerId]);
+    }, [loadLocations])
 
     if (!canManageServiceLocations) {
         return <Navigate replace to='/app' />
@@ -126,32 +127,12 @@ export function ServiceLocationsPage() {
         setIsFormOpen(true);
     }
 
-    function handleLocationSaved(savedLocation: ServiceLocation) {
-        const matchesCurrentCustomerFilter = !selectedCustomerId || savedLocation.customerId === selectedCustomerId;
-
-        setLocations(currentLocations => {
-            const locationsWithoutSavedLocation = currentLocations.filter(
-                location => location.id !== savedLocation.id
-            );
-
-            if (!matchesCurrentCustomerFilter) {
-                return locationsWithoutSavedLocation;
-            }
-
-            return sortLocations([...locationsWithoutSavedLocation, savedLocation]);
-        });
+    function handleLocationSaved() {
+        void loadLocations();
     }
 
-    function handleLocationDeactivated(serviceLocationId: string) {
-        setLocations(currentLocations => {
-            if (!includeInactive) {
-                return currentLocations.filter(location => location.id !== serviceLocationId);
-            }
-
-            return currentLocations.map(location => 
-                location.id === serviceLocationId ? { ...location, isActive: false} : location
-            );
-        });
+    function handleLocationDeactivated() {
+        void loadLocations();
     }
 
     return (
@@ -193,6 +174,18 @@ export function ServiceLocationsPage() {
                         direction={{ xs: 'column', sm: 'row' }}
                         spacing={2}
                     >
+                        <TextField
+                            label='Service locations'
+                            onChange={e => {
+                                setSearchInput(e.target.value);
+                                setPage(1);
+                            }}
+                            value={searchInput}
+                            placeholder="Location, customer, address, or city"
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', md: 280 } }}
+                        />
+
                         <FormControl
                             disabled={isLoadingCustomers}
                             size="small"
@@ -205,7 +198,10 @@ export function ServiceLocationsPage() {
                             <Select
                                 label="Customer"
                                 labelId="customer-filter-label"
-                                onChange={e => setSelectedCustomerId(e.target.value)}
+                                onChange={e => {
+                                    setSelectedCustomerId(e.target.value);
+                                    setPage(1);
+                                }}
                                 value={selectedCustomerId}
                             >
                                 <MenuItem value="">
@@ -224,7 +220,10 @@ export function ServiceLocationsPage() {
                             control={
                                 <Switch
                                     checked={includeInactive}
-                                    onChange={e => setIncludeInactive(e.target.checked)}
+                                    onChange={e => {
+                                        setIncludeInactive(e.target.checked);
+                                        setPage(1);
+                                    }}
                                 />
                             }
                             label="Include inactive locations"
@@ -260,8 +259,8 @@ export function ServiceLocationsPage() {
                         </Typography>
 
                         <Typography color="text.secondary" sx={{ mt: 1 }}>
-                            {selectedCustomerId
-                                ? 'This customer does not have any matching service locations.'
+                            {search || selectedCustomerId
+                                ? 'No service locations match the current search and filter settings.'
                                 : 'Create a service location for one of your customers to begin scheduling work.'}
                         </Typography>
                     </Paper>
@@ -313,7 +312,7 @@ export function ServiceLocationsPage() {
                                             />
                                         </TableCell>
 
-                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap'}}>
+                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                                             <Tooltip title="Edit service location">
                                                 <IconButton
                                                     aria-label={`Edit ${location.name}`}
@@ -341,9 +340,31 @@ export function ServiceLocationsPage() {
                         </Table>
                     </TableContainer>
                 )}
+
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between'
+                    }}
+                >
+                    <Typography color="text.secondary" variant="body2">
+                        {totalCount} service location{totalCount === 1 ? '' : 's'}
+                    </Typography>
+
+                    {totalPages > 1 && (
+                        <Pagination
+                            count={totalPages}
+                            onChange={(_, value) => setPage(value)}
+                            page={page}
+                            shape="rounded"
+                        />
+                    )}
+                </Stack>
             </Stack>
 
-            <ServiceLocationFormDialog 
+            <ServiceLocationFormDialog
                 customers={customers}
                 location={selectedLocation}
                 onClose={() => setIsFormOpen(false)}
@@ -356,7 +377,7 @@ export function ServiceLocationsPage() {
                 open={isFormOpen}
             />
 
-            <ServiceLocationDeactivateDialog 
+            <ServiceLocationDeactivateDialog
                 location={locationToDeactivate}
                 onClose={() => setLocationToDeactivate(null)}
                 onDeactivated={handleLocationDeactivated}

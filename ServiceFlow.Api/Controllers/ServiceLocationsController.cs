@@ -106,6 +106,18 @@ public sealed class ServiceLocationsController(
         return Ok(locations);
     }
 
+    [HttpGet("lookup")]
+    [ProducesResponseType(typeof(IReadOnlyList<ServiceLocationLookupResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ServiceLocationLookupResponse>>> GetLookup(
+        [FromQuery] bool includeInactive,
+        CancellationToken cancellationToken
+    )
+    {
+        var locations = await serviceLocationService.GetLookupAsync(includeInactive, cancellationToken);
+
+        return Ok(locations);
+    }
+
     [HttpGet("{serviceLocationId:guid}")]
     [ProducesResponseType(typeof(ServiceLocationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

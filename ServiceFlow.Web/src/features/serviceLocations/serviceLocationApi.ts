@@ -1,4 +1,5 @@
 import { apiRequest } from "../../api/apiClient";
+import type { PagedResponse } from "../../api/pagincation";
 
 export interface ServiceLocation {
     id: string,
@@ -16,6 +17,14 @@ export interface ServiceLocation {
     updatedUtc: string | null
 }
 
+export interface ServiceLocationLookup {
+    id: string,
+    customerId: string,
+    customerName: string,
+    name: string,
+    isActive: boolean
+}
+
 export interface ServiceLocationInput {
     customerId: string;
     name: string;
@@ -28,23 +37,43 @@ export interface ServiceLocationInput {
 }
 
 interface GetServiceLocationParams {
+    search?: string,
     customerId?: string,
-    includeInactive: boolean
+    includeInactive: boolean,
+    page: number,
+    pageSize: number
 }
 
 export function getServiceLocations({
+    search,
     customerId,
-    includeInactive
+    includeInactive,
+    page,
+    pageSize
 }: GetServiceLocationParams) {
     const query = new URLSearchParams({
-        includeInactive: String(includeInactive)
+        includeInactive: String(includeInactive),
+        page: String(page),
+        pageSize: String(pageSize)
     });
+
+    if (search?.trim()) {
+        query.set('search', search.trim());
+    }
 
     if (customerId) {
         query.set('customerId', customerId);
     }
 
-    return apiRequest<ServiceLocation[]>(`/service-locations?${query.toString()}`);
+    return apiRequest<PagedResponse<ServiceLocation>>(`/service-locations?${query.toString()}`);
+}
+
+export function getServiceLocationLookup(includeInactive: boolean) {
+    const query = new URLSearchParams({
+        includeInactive: String(includeInactive)
+    });
+
+    return apiRequest<ServiceLocation[]>(`/service-locations/lookup?${query.toString()}`);
 }
 
 export function createServiceLocation(input: ServiceLocationInput) {

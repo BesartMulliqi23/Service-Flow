@@ -1,4 +1,5 @@
 import { apiRequest } from "../../api/apiClient";
+import type { PagedResponse } from "../../api/pagincation";
 
 export interface Customer {
     id: string,
@@ -12,6 +13,11 @@ export interface Customer {
     updatedUtc: string | null
 }
 
+export interface CustomerLookup {
+    id: string,
+    name: string
+}
+
 export interface CustomerInput {
     name: string,
     contactName: string,
@@ -20,12 +26,34 @@ export interface CustomerInput {
     notes: string
 }
 
-export function getCustomers(includeInactive: boolean) {
+export interface GetCustomersParams {
+    search?: string,
+    includeInactive: boolean,
+    page: number,
+    pageSize: number
+}
+
+export function getCustomers({
+    search,
+    includeInactive,
+    page,
+    pageSize
+}: GetCustomersParams) {
     const query = new URLSearchParams({
-        includeInactive: String(includeInactive)
+        includeInactive: String(includeInactive),
+        page: String(page),
+        pageSize: String(pageSize)
     });
 
-    return apiRequest<Customer[]>(`/customers?${query.toString()}`);
+    if (search?.trim()) {
+        query.set('search', search.trim());
+    }
+
+    return apiRequest<PagedResponse<Customer>>(`/customers?${query.toString()}`);
+}
+
+export function getActiveCustomerLookup() {
+    return apiRequest<CustomerLookup[]>('/customers/lookup');
 }
 
 export function createCustomer(input: CustomerInput) {

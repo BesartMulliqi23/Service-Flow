@@ -69,6 +69,15 @@ public sealed class CustomersController(
         return Ok(customers);
     }
 
+    [HttpGet("lookup")]
+    [ProducesResponseType(typeof(IReadOnlyList<CustomerLookupResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<CustomerLookupResponse>>> GetLookup(CancellationToken cancellationToken)
+    {
+        var customers = await customerService.GetActiveLookupAsync(cancellationToken);
+
+        return Ok(customers);
+    }
+
     [HttpGet("{customerId:guid}")]
     [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

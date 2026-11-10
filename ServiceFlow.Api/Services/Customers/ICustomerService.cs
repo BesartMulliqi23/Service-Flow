@@ -15,6 +15,8 @@ public interface ICustomerService
         CancellationToken cancellationToken
     );
 
+    Task<IReadOnlyList<CustomerLookupResponse>> GetActiveLookupAsync(CancellationToken cancellationToken);
+
     Task<CustomerResponse?> GetByIdAsync(Guid customerId, CancellationToken cancellationToken);
 
     Task<CustomerResponse?> UpdateAsync(Guid customerId, UpdateCustomerRequest request, CancellationToken cancellationToken);

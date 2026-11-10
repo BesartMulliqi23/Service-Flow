@@ -144,6 +144,36 @@ public sealed class ServiceLocationService(
         );
     }
 
+    public async Task<IReadOnlyList<ServiceLocationLookupResponse>> GetLookupAsync(
+        bool includeInactive,
+        CancellationToken cancellationToken
+    )
+    {
+        var organizationId = currentOrganization.OrganizationId;
+
+        var query = dbContext.ServiceLocations
+            .AsNoTracking()
+            .Where(location => location.OrganizationId == organizationId);
+
+        if (!includeInactive)
+        {
+            query = query.Where(location => location.IsActive);
+        }
+
+        return await query
+            .OrderBy(location => location.Customer.Name)
+            .ThenBy(location => location.Name)
+            .ThenBy(location => location.Id)
+            .Select(location => new ServiceLocationLookupResponse(
+                location.Id,
+                location.Customer.Id,
+                location.Customer.Name,
+                location.Name,
+                location.IsActive
+            ))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<ServiceLocationResponse?> GetByIdAsync(Guid serviceLocationId, CancellationToken cancellationToken)
     {
         var organizationId = currentOrganization.OrganizationId;
