@@ -1,4 +1,5 @@
 import { apiRequest } from "../../api/apiClient";
+import type { PagedResponse } from "../../api/pagination";
 
 export type WorkOrderPriority = 'Low' | 'Normal' | 'High' | 'Urgent';
 
@@ -37,15 +38,30 @@ export interface ScheduleWorkOrderInput {
 }
 
 interface GetWorkOrdersParams {
+    search?: string,
     serviceLocationId?: string,
-    status?: WorkOrderStatus
+    status?: WorkOrderStatus,
+    priority?: WorkOrderPriority,
+    page: number,
+    pageSize: number
 }
 
 export function getWorkOrders({
+    search,
     serviceLocationId,
-    status
+    status,
+    priority,
+    page,
+    pageSize
 }: GetWorkOrdersParams) {
-    const query = new URLSearchParams();
+    const query = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize)
+    });
+
+    if (search?.trim()) {
+        query.set('search', search.trim());
+    }
 
     if (serviceLocationId) {
         query.set('serviceLocationId', serviceLocationId);
@@ -55,9 +71,11 @@ export function getWorkOrders({
         query.set('status', status);
     }
 
-    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    if (priority) {
+        query.set('priority', priority);
+    }
 
-    return apiRequest<WorkOrder[]>(`/work-orders${suffix}`);
+    return apiRequest<PagedResponse<WorkOrder>>(`/work-orders?${query.toString()}`);
 }
 
 export function createWorkOrder(input: WorkOrderInput) {

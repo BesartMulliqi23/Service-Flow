@@ -51,7 +51,7 @@ public sealed class MaterialsController(
 
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<MaterialResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<MaterialResponse>>> GetAll(
+    public async Task<ActionResult<PagedResponse<MaterialResponse>>> GetAll(
         [FromQuery] string? search,
         [FromQuery] bool includeInactive,
         [FromQuery] int? page,

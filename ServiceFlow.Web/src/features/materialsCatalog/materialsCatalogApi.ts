@@ -1,4 +1,5 @@
 import { apiRequest } from "../../api/apiClient";
+import type { PagedResponse } from "../../api/pagination";
 
 export type Material = {
     id: string,
@@ -18,12 +19,30 @@ export type MaterialInput = {
     defaultUnitCost: number
 };
 
-export function getMaterials(includeInactive: boolean) {
+export type GetMaterialParams = {
+    search?: string,
+    includeInactive: boolean,
+    page: number,
+    pageSize: number
+};
+
+export function getMaterials({
+    search,
+    includeInactive,
+    page,
+    pageSize
+}: GetMaterialParams) {
     const query = new URLSearchParams({
-        includeInactive: String(includeInactive)
+        includeInactive: String(includeInactive),
+        page: String(page),
+        pageSize: String(pageSize)
     });
 
-    return apiRequest<Material[]>(`/materials?${query.toString()}`);
+    if (search?.trim()) {
+        query.set('search', search.trim());
+    }
+
+    return apiRequest<PagedResponse<Material>>(`/materials?${query.toString()}`);
 }
 
 export function createMaterial(input: MaterialInput) {

@@ -1,5 +1,5 @@
 import { apiRequest } from "../../api/apiClient";
-import type { PagedResponse } from "../../api/pagincation";
+import type { PagedResponse } from "../../api/pagination";
 
 export interface Customer {
     id: string,

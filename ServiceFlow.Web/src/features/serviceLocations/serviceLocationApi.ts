@@ -1,5 +1,5 @@
 import { apiRequest } from "../../api/apiClient";
-import type { PagedResponse } from "../../api/pagincation";
+import type { PagedResponse } from "../../api/pagination";
 
 export interface ServiceLocation {
     id: string,
@@ -73,7 +73,7 @@ export function getServiceLocationLookup(includeInactive: boolean) {
         includeInactive: String(includeInactive)
     });
 
-    return apiRequest<ServiceLocation[]>(`/service-locations/lookup?${query.toString()}`);
+    return apiRequest<ServiceLocationLookup[]>(`/service-locations/lookup?${query.toString()}`);
 }
 
 export function createServiceLocation(input: ServiceLocationInput) {

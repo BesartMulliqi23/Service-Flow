@@ -1,11 +1,11 @@
 import { useEffect, useState, type SubmitEvent } from "react";
-import type { ServiceLocation } from "../serviceLocations/serviceLocationApi"
+import type { ServiceLocationLookup } from "../serviceLocations/serviceLocationApi"
 import type { WorkOrder, WorkOrderInput, WorkOrderPriority } from "./workOrderApi"
 import { ApiError, type ValidationErrors } from "../../api/apiClient";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material";
 
 type WorkOrderFormDialogProps = {
-    serviceLocations: ServiceLocation[],
+    serviceLocations: ServiceLocationLookup[],
     workOrder: WorkOrder | null,
     onClose: () => void,
     onSaved: (workOrder: WorkOrder) => void,

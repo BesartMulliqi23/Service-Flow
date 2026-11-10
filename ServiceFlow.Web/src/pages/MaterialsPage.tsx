@@ -2,25 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import { getMaterials, type Material } from "../features/materialsCatalog/materialsCatalogApi";
 import { Navigate } from "react-router";
-import { Alert, Box, Button, Chip, CircularProgress, FormControlLabel, IconButton, Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, FormControlLabel, IconButton, Pagination, Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { AddRounded, EditRounded, PersonOffRounded } from "@mui/icons-material";
 import { MaterialFormDialog } from "../features/materialsCatalog/MaterialFormDialog";
 import { MaterialDeactivateDialog } from "../features/materialsCatalog/MaterialDeactivateDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
+const pageSize = 25;
+
 function formatCost(value: number) {
     return value.toFixed(2);
-}
-
-function sortMaterials(materials: Material[]) {
-    return [...materials].sort((first, second) => {
-        if (first.isActive !== second.isActive) {
-            return first.isActive ? -1 : 1;
-        }
-
-        return first.name.localeCompare(second.name);
-    })
 }
 
 export function MaterialsPage() {
@@ -34,6 +26,12 @@ export function MaterialsPage() {
     const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
     const [materialToDeactivate, setMaterialToDeactivate] = useState<Material | null>(null);
 
+    const [searchInput, setSearchInput] = useState('');
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+
     const canManageMaterials = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
     const loadMaterials = useCallback(async () => {
@@ -41,14 +39,30 @@ export function MaterialsPage() {
         setErrorMessage(null);
 
         try {
-            const response = await getMaterials(includeInactive);
-            setMaterials(response);
+            const response = await getMaterials({
+                search,
+                includeInactive,
+                page,
+                pageSize
+            });
+
+            setMaterials(response.items);
+            setTotalCount(response.totalCount);
+            setTotalPages(response.totalPages);
         } catch {
             setErrorMessage('Unable to load the material catalog. Please try again in a moment.');
         } finally {
             setIsLoading(false);
         }
-    }, [includeInactive]);
+    }, [includeInactive, search, page]);
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            setSearch(searchInput.trim());
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchInput]);
 
     useEffect(() => {
         void loadMaterials();
@@ -68,35 +82,12 @@ export function MaterialsPage() {
         setIsFormOpen(true);
     }
 
-    function handleMaterialSaved(savedMaterial: Material) {
-        setMaterials(currentMaterials => {
-            const materialsWithoutSavedMaterial = currentMaterials.filter(
-                material => material.id !== savedMaterial.id
-            );
-
-            if (!includeInactive && !savedMaterial.isActive) {
-                return materialsWithoutSavedMaterial;
-            }
-
-            return sortMaterials([
-                ...materialsWithoutSavedMaterial,
-                savedMaterial
-            ]);
-        });
+    function handleMaterialSaved() {
+        void loadMaterials();
     }
 
-    function handleMaterialDeactivated(materialId: string) {
-        setMaterials(currentMaterials => {
-            if (!includeInactive) {
-                return currentMaterials.filter(material => material.id !== materialId);
-            }
-
-            return sortMaterials(currentMaterials.map(material =>
-                material.id === materialId
-                    ? { ...material, isActive: false }
-                    : material
-            ));
-        });
+    function handleMaterialDeactivated() {
+        void loadMaterials();
     }
 
     return (
@@ -130,15 +121,35 @@ export function MaterialsPage() {
                 </Stack>
 
                 <Paper sx={{ p: 2 }}>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={includeInactive}
-                                onChange={e => setIncludeInactive(e.target.checked)}
-                            />
-                        }
-                        label='Include inactive materials'
-                    />
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={2}
+                    >
+                        <TextField
+                            label='Search materials'
+                            placeholder="Name, SKU, or unit"
+                            onChange={e => {
+                                setSearchInput(e.target.value);
+                                setPage(1);
+                            }}
+                            value={searchInput}
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', sm: 280 } }}
+                        />
+
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={includeInactive}
+                                    onChange={e => {
+                                        setIncludeInactive(e.target.checked);
+                                        setPage(1);
+                                    }}
+                                />
+                            }
+                            label='Include inactive materials'
+                        />
+                    </Stack>
                 </Paper>
 
                 {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
@@ -166,11 +177,11 @@ export function MaterialsPage() {
                             No materials found
                         </Typography>
 
-                        <Typography color="text.secondary" sx={{ mt: 1 }}>
-                            {includeInactive
+                        {search
+                            ? 'No materials match the current search and filter settings.'
+                            : includeInactive
                                 ? 'No active or inactive materials are available.'
                                 : 'Create your first material to make it available to technicians.'}
-                        </Typography>
                     </Paper>
                 ) : (
                     <TableContainer component={Paper} variant="outlined">
@@ -243,6 +254,28 @@ export function MaterialsPage() {
                         </Table>
                     </TableContainer>
                 )}
+
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between'
+                    }}
+                >
+                    <Typography color="text.secondary" variant="body2">
+                        {totalCount} material{totalCount === 1 ? '' : 's'}
+                    </Typography>
+
+                    {totalPages > 1 && (
+                        <Pagination
+                            count={totalPages}
+                            onChange={(_, value) => setPage(value)}
+                            page={page}
+                            shape="rounded"
+                        />
+                    )}
+                </Stack>
             </Stack>
 
             <MaterialFormDialog
