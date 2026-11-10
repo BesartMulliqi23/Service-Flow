@@ -1,3 +1,4 @@
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.ServiceLocations;
 
 namespace ServiceFlow.Api.Services.ServiceLocations;
@@ -9,8 +10,16 @@ public interface IServiceLocationService
         CancellationToken cancellationToken
     );
 
-    Task<IReadOnlyList<ServiceLocationResponse>> GetAllAsync(
+    Task<PagedResponse<ServiceLocationResponse>> GetAllAsync(
+        string? search,
         Guid? customerId,
+        bool includeInactive,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken
+    );
+
+    Task<IReadOnlyList<ServiceLocationLookupResponse>> GetLookupAsync(
         bool includeInactive,
         CancellationToken cancellationToken
     );

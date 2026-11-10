@@ -103,6 +103,16 @@ It helps office staff manage customers, service locations, work orders, technici
 - Owner and Manager access to the paginated **Activity** page
 - Activity filtering by action, resource type, and local date range
 
+## Resource search and pagination
+
+- Server-side search, filtering, stable ordering, and bounded pagination for Customers, Service Locations, Work Orders, and Materials
+- Searchable Customer fields: name, contact name, email, and phone number
+- Searchable Service Location fields: location name, Customer name, address, city, and postal code
+- Searchable Work Order fields: title, Customer name, and Service Location name
+- Searchable Material fields: name, SKU, and unit of measure
+- MUI search controls, result counts, empty states, and pagination for the primary dispatch-management lists
+- Dedicated tenant-scoped lookup endpoints for resource selectors, independent from paginated management lists
+
 ## Operational dashboard
 
 - Tenant-scoped operational summary endpoint for Owners and Managers
@@ -114,7 +124,6 @@ It helps office staff manage customers, service locations, work orders, technici
 
 ## Roadmap
 
-- Search, filtering, and pagination
 - Automated authorization and business-rule tests
 - Demo data, deployment, CI, screenshots, and demo video
 

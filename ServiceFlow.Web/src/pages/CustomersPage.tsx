@@ -1,17 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import { getCustomers, type Customer } from "../features/customers/customerApi";
 import { Navigate } from "react-router";
-import { Alert, Box, Button, Chip, CircularProgress, FormControlLabel, IconButton, Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, FormControlLabel, IconButton, Pagination, Paper, Stack, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { AddRounded, EditRounded, PersonOffRounded } from "@mui/icons-material";
 import { CustomerFormDialog } from "../features/customers/CustomerFormDialog";
 import { CustomerDeactivateDialog } from "../features/customers/CustomerDeactivateDialog";
 
 const operationsManagerRoles = ['Owner', 'Manager', 'Dispatcher'];
 
-function sortCustomers(customers: Customer[]) {
-    return [...customers].sort((first, second) => first.name.localeCompare(second.name));
-}
+const pageSize = 25;
 
 export function CustomersPage() {
     const { user } = useAuth();
@@ -24,38 +22,47 @@ export function CustomersPage() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [customerToDeactivate, setCustomerToDeactivate] = useState<Customer | null>(null);
 
+    const [searchInput, setSearchInput] = useState('');
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+
     const canManageCustomers = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
     useEffect(() => {
-        let isCurrentRequest = true;
+        const timeoutId = setTimeout(() => {
+            setSearch(searchInput.trim());
+        }, 300);
 
-        async function loadCustomers() {
-            setIsLoading(true);
-            setErrorMessage(null);
+        return () => clearTimeout(timeoutId);
+    }, [searchInput]);
 
-            try {
-                const response = await getCustomers(includeInactive);
+    const loadCustomers = useCallback(async () => {
+        setIsLoading(true);
+        setErrorMessage(null);
 
-                if (isCurrentRequest) {
-                    setCustomers(response);
-                }
-            } catch {
-                if (isCurrentRequest) {
-                    setErrorMessage('Unable to load customers. Please try again in a moment.');
-                }
-            } finally {
-                if (isCurrentRequest) {
-                    setIsLoading(false);
-                }
-            }
+        try {
+            const response = await getCustomers({
+                search,
+                includeInactive,
+                page,
+                pageSize
+            });
+
+            setCustomers(response.items);
+            setTotalCount(response.totalCount);
+            setTotalPages(response.totalPages);
+        } catch {
+            setErrorMessage('Unable to load customers. Please try again in a moment.');
+        } finally {
+            setIsLoading(false);
         }
+    }, [includeInactive, page, search]);
 
+    useEffect(() => {
         void loadCustomers();
-
-        return () => {
-            isCurrentRequest = false;
-        }
-    }, [includeInactive]);
+    }, [loadCustomers]);
 
     if (!canManageCustomers) {
         return <Navigate to='/app' replace />
@@ -71,36 +78,12 @@ export function CustomersPage() {
         setIsFormOpen(true);
     }
 
-    function handleCustomerSaved(savedCustomer: Customer) {
-        setCustomers(currentCustomers => {
-            const existingCustomerIndex = currentCustomers.findIndex(
-                customer => customer.id === savedCustomer.id
-            );
-
-            if (existingCustomerIndex === -1) {
-                return sortCustomers([...currentCustomers, savedCustomer]);
-            }
-
-            return sortCustomers(
-                currentCustomers.map(customer =>
-                    customer.id === savedCustomer.id ? savedCustomer : customer
-                )
-            );
-        });
+    function handleCustomerSaved() {
+        void loadCustomers();
     }
 
-    function handleCustomerDeactivated(customerId: string) {
-        setCustomers(currentCustomers => {
-            if (!includeInactive) {
-                return currentCustomers.filter(
-                    customer => customer.id !== customerId
-                );
-            }
-
-            return currentCustomers.map(customer => 
-                customer.id === customerId ? { ...customer, isActive: false } : customer
-            );
-        });
+    function handleCustomerDeactivated() {
+        void loadCustomers();
     }
 
     return (
@@ -134,15 +117,32 @@ export function CustomersPage() {
                 </Stack>
 
                 <Paper sx={{ p: 2 }}>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={includeInactive}
-                                onChange={e => setIncludeInactive(e.target.checked)}
-                            />
-                        }
-                        label="Include inactive customers"
-                    />
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                        <TextField
+                            label='Search customers'
+                            onChange={e => {
+                                setSearchInput(e.target.value);
+                                setPage(1);
+                            }}
+                            value={searchInput}
+                            placeholder="Name, contact, email, or phone"
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', sm: 320 } }}
+                        />
+
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={includeInactive}
+                                    onChange={e => {
+                                        setIncludeInactive(e.target.checked);
+                                        setPage(1);
+                                    }}
+                                />
+                            }
+                            label="Include inactive customers"
+                        />
+                    </Stack>
                 </Paper>
 
                 {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
@@ -171,9 +171,11 @@ export function CustomersPage() {
                         </Typography>
 
                         <Typography color="text.secondary" sx={{ mt: 1 }}>
-                            {includeInactive
-                                ? 'No active or inactive customers are available.'
-                                : 'Create your first customer to begin managing service locations and work orders.'}
+                            {search
+                                ? 'No customers match the current search and filter settings.'
+                                : includeInactive
+                                    ? 'No active or inactive customers are available.'
+                                    : 'Create your first customer to begin managing service locations and work orders.'}
                         </Typography>
                     </Paper>
                 ) : (
@@ -247,16 +249,38 @@ export function CustomersPage() {
                         </Table>
                     </TableContainer>
                 )}
+
+                <Stack
+                    spacing={2}
+                    sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between'
+                    }}
+                    direction={{ xs: 'column', sm: 'row' }}
+                >
+                    <Typography color="text.secondary" variant="body2">
+                        {totalCount} customer{totalCount === 1 ? '' : 's'}
+                    </Typography>
+
+                    {totalPages > 1 && (
+                        <Pagination
+                            count={totalPages}
+                            onChange={(_, value) => setPage(value)}
+                            page={page}
+                            shape="rounded"
+                        />
+                    )}
+                </Stack>
             </Stack>
 
-            <CustomerFormDialog 
+            <CustomerFormDialog
                 customer={selectedCustomer}
                 onClose={() => setIsFormOpen(false)}
                 onSaved={handleCustomerSaved}
                 open={isFormOpen}
             />
 
-            <CustomerDeactivateDialog 
+            <CustomerDeactivateDialog
                 customer={customerToDeactivate}
                 onClose={() => setCustomerToDeactivate(null)}
                 onDeactivated={handleCustomerDeactivated}

@@ -1,11 +1,11 @@
 import { useEffect, useState, type SubmitEvent } from "react"
-import type { Customer } from "../customers/customerApi"
+import type { CustomerLookup } from "../customers/customerApi"
 import type { ServiceLocation, ServiceLocationInput } from "./serviceLocationApi"
 import { ApiError, type ValidationErrors } from "../../api/apiClient"
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, TextField } from "@mui/material"
 
 type ServiceLocationFormDialogProps = {
-    customers: Customer[],
+    customers: CustomerLookup[],
     location: ServiceLocation | null,
     onClose: () => void,
     onSaved: (location: ServiceLocation) => void,

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.Materials;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
@@ -54,8 +55,11 @@ public sealed class MaterialCatalogService(
         );
     }
 
-    public async Task<IReadOnlyList<MaterialResponse>> GetAllAsync(
-        bool includeInactive, 
+    public async Task<PagedResponse<MaterialResponse>> GetAllAsync(
+        string? search,
+        bool includeInactive,
+        int page,
+        int pageSize, 
         CancellationToken cancellationToken
     )
     {
@@ -70,9 +74,60 @@ public sealed class MaterialCatalogService(
             query = query.Where(material => material.IsActive);
         }
 
-        return await query
+        var normalizedSearch = NormalizeSearch(search);
+
+        if (normalizedSearch is not null)
+        {
+            query = query.Where(
+                material =>
+                    material.Name.Contains(normalizedSearch) ||
+                    (material.Sku != null && material.Sku.Contains(normalizedSearch)) ||
+                    material.UnitOfMeasure.Contains(normalizedSearch)
+            );
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var materials = await query
             .OrderByDescending(material => material.IsActive)
             .ThenBy(material => material.Name)
+            .ThenBy(material => material.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(material => new MaterialResponse(
+                material.Id,
+                material.Name,
+                material.Sku,
+                material.UnitOfMeasure,
+                material.DefaultUnitCost,
+                material.IsActive,
+                material.CreatedUtc,
+                material.UpdatedUtc
+            ))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponse<MaterialResponse>(
+            materials,
+            page,
+            pageSize,
+            totalCount,
+            (int)Math.Ceiling(totalCount / (double)pageSize)
+        );
+    }
+
+    public async Task<IReadOnlyList<MaterialResponse>> GetActiveForTechnicianAsync(CancellationToken cancellationToken)
+    {
+        var organizationId = currentOrganization.OrganizationId;
+
+        return await dbContext.Materials
+            .AsNoTracking()
+            .Where(
+                material => 
+                    material.OrganizationId == organizationId &&
+                    material.IsActive
+            )
+            .OrderBy(material => material.Name)
+            .ThenBy(material => material.Id)
             .Select(material => new MaterialResponse(
                 material.Id,
                 material.Name,
@@ -217,6 +272,11 @@ public sealed class MaterialCatalogService(
     }
 
     private static string? NormalizeOptionalValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string? NormalizeSearch(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }

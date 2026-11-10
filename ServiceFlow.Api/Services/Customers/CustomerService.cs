@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ServiceFlow.Api.Authorization;
+using ServiceFlow.Api.Contracts.Common;
 using ServiceFlow.Api.Contracts.Customers;
 using ServiceFlow.Api.Data;
 using ServiceFlow.Api.Models;
@@ -42,7 +43,13 @@ public sealed class CustomerService(
         return ToResponse(customer);
     }
 
-    public async Task<IReadOnlyList<CustomerResponse>> GetAllAsync(bool includeInactive, CancellationToken cancellationToken)
+    public async Task<PagedResponse<CustomerResponse>> GetAllAsync(
+        string? search,
+        bool includeInactive,
+        int page,
+        int pageSize, 
+        CancellationToken cancellationToken
+    )
     {
         var organizationId = currentOrganization.OrganizationId;
 
@@ -55,18 +62,64 @@ public sealed class CustomerService(
             query = query.Where(c => c.IsActive);
         }
 
-        return await query
-            .OrderBy(c => c.Name)
-            .Select(c => new CustomerResponse(
-                c.Id,
-                c.Name,
-                c.ContactName,
-                c.Email,
-                c.PhoneNumber,
-                c.Notes,
-                c.IsActive,
-                c.CreatedUtc,
-                c.UpdatedUtc
+        var normalizedSearch = NormalizeSearch(search);
+
+        if (normalizedSearch is not null)
+        {
+            query = query.Where(
+                customer =>
+                    customer.Name.Contains(normalizedSearch) ||
+                    (customer.ContactName != null && customer.ContactName.Contains(normalizedSearch)) ||
+                    (customer.Email != null && customer.Email.Contains(normalizedSearch)) ||
+                    (customer.PhoneNumber != null && customer.PhoneNumber.Contains(normalizedSearch))
+            );
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var customers = await query
+            .OrderBy(customer => customer.Name)
+            .ThenBy(customer => customer.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(customer => new CustomerResponse(
+                customer.Id,
+                customer.Name,
+                customer.ContactName,
+                customer.Email,
+                customer.PhoneNumber,
+                customer.Notes,
+                customer.IsActive,
+                customer.CreatedUtc,
+                customer.UpdatedUtc
+            ))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponse<CustomerResponse>(
+            customers,
+            page,
+            pageSize,
+            totalCount,
+            (int)Math.Ceiling(totalCount / (double)pageSize)
+        );
+    }
+
+    public async Task<IReadOnlyList<CustomerLookupResponse>> GetActiveLookupAsync(CancellationToken cancellationToken)
+    {
+        var organizationId = currentOrganization.OrganizationId;
+
+        return await dbContext.Customers
+            .AsNoTracking()
+            .Where(
+                customer =>
+                    customer.OrganizationId == organizationId &&
+                    customer.IsActive
+            )
+            .OrderBy(customer => customer.Name)
+            .ThenBy(customer => customer.Id)
+            .Select(customer => new CustomerLookupResponse(
+                customer.Id,
+                customer.Name
             ))
             .ToListAsync(cancellationToken);
     }
@@ -157,6 +210,11 @@ public sealed class CustomerService(
     }
 
     private static string? NormalizeOptionalValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string? NormalizeSearch(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }

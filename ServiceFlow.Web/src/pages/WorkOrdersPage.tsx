@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../features/auth/AuthContext";
 import { createWorkOrder, getWorkOrders, updateWorkOrder, type WorkOrder, type WorkOrderPriority, type WorkOrderStatus } from "../features/workOrders/workOrderApi";
-import { getServiceLocations, type ServiceLocation } from "../features/serviceLocations/serviceLocationApi";
+import { getServiceLocationLookup, type ServiceLocationLookup } from "../features/serviceLocations/serviceLocationApi";
 import { Navigate } from "react-router";
-import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, FormControl, IconButton, InputLabel, MenuItem, Pagination, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { AddRounded, AttachFileRounded, EditRounded, EventRounded, GroupAddRounded, NotesRounded } from "@mui/icons-material";
 import { WorkOrderFormDialog } from "../features/workOrders/WorkOrderFormDialog";
 import { ScheduleWorkOrderDialog } from "../features/workOrders/ScheduleWorkOrderDialog";
@@ -20,6 +20,15 @@ const workOrderStatuses: WorkOrderStatus[] = [
     'Completed',
     'Cancelled'
 ];
+
+const workOrderPriorities: WorkOrderPriority[] = [
+    'Low',
+    'Normal',
+    'High',
+    'Urgent'
+];
+
+const pageSize = 25;
 
 function getPriorityColor(priority: WorkOrderPriority) {
     switch (priority) {
@@ -81,7 +90,7 @@ export function WorkOrdersPage() {
     const { user } = useAuth();
 
     const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-    const [serviceLocations, setServiceLocations] = useState<ServiceLocation[]>([]);
+    const [serviceLocations, setServiceLocations] = useState<ServiceLocationLookup[]>([]);
     const [selectedServiceLocationId, setSelectedServiceLocationId] = useState('');
     const [selectedStatus, setSelectedStatus] = useState<WorkOrderStatus | ''>('');
     const [isLoadingWorkOrders, setIsLoadingWorkOrders] = useState(true);
@@ -95,6 +104,13 @@ export function WorkOrdersPage() {
     const [workOrderToViewNotes, setWorkOrderToViewNotes] = useState<WorkOrder | null>(null);
     const [workOrderToViewAttachments, setWorkOrderToViewAttachments] = useState<WorkOrder | null>(null);
 
+    const [searchInput, setSearchInput] = useState('');
+    const [search, setSearch] = useState('');
+    const [selectedPriority, setSelectedPriority] = useState<WorkOrderPriority | ''>('');
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+
     const canManageWorkOrders = user?.roles.some(role => operationsManagerRoles.includes(role)) ?? false;
 
     const activeServiceLocations = serviceLocations.filter(location => location.isActive);
@@ -107,9 +123,7 @@ export function WorkOrdersPage() {
             setServiceLocationsErrorMessage(null);
 
             try {
-                const response = await getServiceLocations({
-                    includeInactive: true
-                });
+                const response = await getServiceLocationLookup(true);
 
                 if (isCurrentRequest) {
                     setServiceLocations(response);
@@ -133,38 +147,40 @@ export function WorkOrdersPage() {
     }, []);
 
     useEffect(() => {
-        let isCurrentRequest = true;
+        const timeoutId = setTimeout(() => {
+            setSearch(searchInput.trim());
+        }, 300);
 
-        async function loadWorkOrders() {
-            setIsLoadingWorkOrders(true);
-            setWorkOrdersErrorMessage(null);
+        return () => clearTimeout(timeoutId);
+    }, [searchInput]);
 
-            try {
-                const response = await getWorkOrders({
-                    serviceLocationId: selectedServiceLocationId || undefined,
-                    status: selectedStatus || undefined
-                });
+    const loadWorkOrders = useCallback(async () => {
+        setIsLoadingWorkOrders(true);
+        setWorkOrdersErrorMessage(null);
 
-                if (isCurrentRequest) {
-                    setWorkOrders(response);
-                }
-            } catch {
-                if (isCurrentRequest) {
-                    setWorkOrdersErrorMessage('Unable to load work orders. Please try again in a moment.');
-                }
-            } finally {
-                if (isCurrentRequest) {
-                    setIsLoadingWorkOrders(false);
-                }
-            }
+        try {
+            const response = await getWorkOrders({
+                search,
+                serviceLocationId: selectedServiceLocationId || undefined,
+                status: selectedStatus || undefined,
+                priority: selectedPriority || undefined,
+                page,
+                pageSize
+            });
+
+            setWorkOrders(response.items);
+            setTotalCount(response.totalCount);
+            setTotalPages(response.totalPages);
+        } catch {
+            setWorkOrdersErrorMessage('Unable to load work orders. Please try again in a moment.');
+        } finally {
+            setIsLoadingWorkOrders(false);
         }
+    }, [search, selectedServiceLocationId, selectedStatus, selectedPriority, page]);
 
+    useEffect(() => {
         void loadWorkOrders();
-
-        return () => {
-            isCurrentRequest = false;
-        };
-    }, [selectedServiceLocationId, selectedStatus]);
+    }, [loadWorkOrders]);
 
     if (!canManageWorkOrders) {
         return <Navigate to='/app' replace />
@@ -188,30 +204,8 @@ export function WorkOrdersPage() {
         setWorkOrderToAssign(workOrder);
     }
 
-    function handleWorkOrderSaved(savedWorkOrder: WorkOrder) {
-        const matchesServiceLocationFilter =
-            !selectedServiceLocationId || savedWorkOrder.serviceLocationId === selectedServiceLocationId;
-
-        const matchesStatusFilter =
-            !selectedStatus || savedWorkOrder.status === selectedStatus;
-
-        setWorkOrders(currentWorkOrders => {
-            const existingWorkOrder = currentWorkOrders.find(order => order.id === savedWorkOrder.id);
-
-            const withoutSavedWorkOrder = currentWorkOrders.filter(order => order.id !== savedWorkOrder.id);
-
-            if (!matchesServiceLocationFilter || !matchesStatusFilter) {
-                return withoutSavedWorkOrder;
-            }
-
-            if (existingWorkOrder) {
-                return currentWorkOrders.map(order =>
-                    order.id === savedWorkOrder.id ? savedWorkOrder : order
-                );
-            }
-
-            return [savedWorkOrder, ...withoutSavedWorkOrder];
-        });
+    function handleWorkOrderSaved() {
+        void loadWorkOrders();
     }
 
     return (
@@ -253,6 +247,18 @@ export function WorkOrdersPage() {
 
                 <Paper sx={{ p: 2 }}>
                     <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                        <TextField
+                            label='Search work orders'
+                            placeholder="Title, customer, or location"
+                            onChange={e => {
+                                setSearchInput(e.target.value);
+                                setPage(1);
+                            }}
+                            value={searchInput}
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', md: 280 } }}
+                        />
+
                         <FormControl
                             disabled={isLoadingServiceLocations}
                             size="small"
@@ -265,7 +271,10 @@ export function WorkOrdersPage() {
                             <Select
                                 label="Service location"
                                 labelId="work-order-location-filter-label"
-                                onChange={e => setSelectedServiceLocationId(e.target.value)}
+                                onChange={e => {
+                                    setSelectedServiceLocationId(e.target.value);
+                                    setPage(1);
+                                }}
                                 value={selectedServiceLocationId}
                             >
                                 <MenuItem value="">
@@ -291,7 +300,10 @@ export function WorkOrdersPage() {
                             <Select
                                 label="Status"
                                 labelId="work-order-status-filter-label"
-                                onChange={e => setSelectedStatus(e.target.value)}
+                                onChange={e => {
+                                    setSelectedStatus(e.target.value);
+                                    setPage(1);
+                                }}
                                 value={selectedStatus}
                             >
                                 <MenuItem value="">
@@ -301,6 +313,35 @@ export function WorkOrdersPage() {
                                 {workOrderStatuses.map(status => (
                                     <MenuItem key={status} value={status}>
                                         {formatStatus(status)}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl
+                            size="small"
+                            sx={{ minWidth: { xs: '100%', md: 160 } }}
+                        >
+                            <InputLabel id='work-order-priority-filter-label'>
+                                Priority
+                            </InputLabel>
+
+                            <Select
+                                label='Priority'
+                                labelId='work-order-priority-filter-label'
+                                onChange={e => {
+                                    setSelectedPriority(e.target.value as WorkOrderPriority | '');
+                                    setPage(1);
+                                }}
+                                value={selectedPriority}
+                            >
+                                <MenuItem value=''>
+                                    <em>All priorities</em>
+                                </MenuItem>
+
+                                {workOrderPriorities.map(priority => (
+                                    <MenuItem key={priority} value={priority}>
+                                        {priority}
                                     </MenuItem>
                                 ))}
                             </Select>
@@ -335,9 +376,9 @@ export function WorkOrdersPage() {
                             No work orders found
                         </Typography>
 
-                        <Typography color="text.secondary" sx={{ mt: 1 }}>
-                            Create a draft work order to begin planning service work.
-                        </Typography>
+                        {search || selectedServiceLocationId || selectedStatus || selectedPriority
+                            ? 'No work orders match the current search and filter settings.'
+                            : 'Create a draft work order to begin planning service work.'}
                     </Paper>
                 ) : (
                     <TableContainer component={Paper} variant="outlined">
@@ -463,6 +504,28 @@ export function WorkOrdersPage() {
                         </Table>
                     </TableContainer>
                 )}
+
+                <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        justifyContent: 'space-between'
+                    }}
+                >
+                    <Typography color="text.secondary" variant="body2">
+                        {totalCount} work order{totalCount === 1 ? '' : 's'}
+                    </Typography>
+
+                    {totalPages > 1 && (
+                        <Pagination
+                            count={totalPages}
+                            onChange={(_, value) => setPage(value)}
+                            page={page}
+                            shape="rounded"
+                        />
+                    )}
+                </Stack>
             </Stack>
 
             <WorkOrderFormDialog
@@ -483,7 +546,7 @@ export function WorkOrdersPage() {
                 workOrder={workOrderToSchedule}
             />
 
-            <WorkOrderAssignmentsDialog 
+            <WorkOrderAssignmentsDialog
                 onClose={() => setWorkOrderToAssign(null)}
                 open={workOrderToAssign !== null}
                 workOrder={workOrderToAssign}

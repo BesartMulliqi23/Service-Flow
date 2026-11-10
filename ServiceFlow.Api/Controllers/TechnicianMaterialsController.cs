@@ -17,7 +17,7 @@ public sealed class TechnicianMaterialsController(
     [ProducesResponseType(typeof(IReadOnlyList<MaterialResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<MaterialResponse>>> GetAll(CancellationToken cancellationToken)
     {
-        var materials = await materialCatalogService.GetAllAsync(includeInactive:false, cancellationToken);
+        var materials = await materialCatalogService.GetActiveForTechnicianAsync(cancellationToken);
 
         return Ok(materials);
     }
